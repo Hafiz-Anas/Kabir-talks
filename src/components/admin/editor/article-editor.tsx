@@ -6,9 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 
+import { AiSuggest } from "@/components/admin/ai/ai-suggest";
 import { TranslateButton } from "@/components/admin/ai/translate-button";
 import { type DraftApplyMode, WritePanel } from "@/components/admin/ai/write-panel";
-import type { AiResults, TranslatableField } from "@/lib/ai/tasks";
+import type { AiResults, SuggestKind, TranslatableField } from "@/lib/ai/tasks";
 import { DeleteArticleDialog } from "@/components/admin/article-row-actions";
 import { Checklist, PublishBlockedDialog } from "@/components/admin/publish-dialogs";
 import { useShowPublished } from "@/components/admin/publish-success-provider";
@@ -399,6 +400,25 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
     setNotice(`Translated into ${to === "en" ? "English" : "Urdu"}. Review it, then save.${extra.length ? ` ${extra.join(" ")}` : ""}`);
   };
 
+  /** AI suggestion control for a field (nothing when AI is off). Applies only on click. */
+  const suggest = (
+    kind: SuggestKind,
+    locale: Locale,
+    onApply?: (value: string) => void,
+    options: { onAddTag?: (tag: TagValue) => void; disabledReason?: string } = {},
+  ) =>
+    aiEnabled ? (
+      <AiSuggest
+        kind={kind}
+        locale={locale}
+        getContext={() => ({ ...localeFields(kind === "slug" ? "en" : locale), body: readiness[locale].body ?? null })}
+        onApply={onApply}
+        onAddTag={options.onAddTag}
+        chosenTags={form.tags}
+        disabledReason={options.disabledReason}
+      />
+    ) : null;
+
   const translateControl = (from: Locale, to: Locale) =>
     aiEnabled ? (
       <TranslateButton
@@ -496,11 +516,13 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
                 />
               )}
             </Field>
+            {suggest("headlines", "en", (value) => setAiField("en", "title", value))}
             <Field label="Excerpt" hint="One or two sentences shown on cards and share previews." count={[form.excerptEn.length, LIMITS.excerpt]}>
               {(fieldId) => (
                 <Textarea id={fieldId} value={form.excerptEn} onChange={(e) => update("excerptEn", e.target.value)} maxLength={LIMITS.excerpt} rows={2} />
               )}
             </Field>
+            {suggest("excerpt", "en", (value) => setAiField("en", "excerpt", value))}
             <RichTextEditor
               locale="en"
               label="English article body"
@@ -527,6 +549,7 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
                 />
               )}
             </Field>
+            {suggest("headlines", "ur", (value) => setAiField("ur", "title", value))}
             <Field label="خلاصہ" hint="ایک یا دو جملے جو کارڈز اور شیئر پری ویو میں دکھائے جائیں گے۔" count={[form.excerptUr.length, LIMITS.excerpt]}>
               {(fieldId) => (
                 <Textarea
@@ -541,6 +564,7 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
                 />
               )}
             </Field>
+            {suggest("excerpt", "ur", (value) => setAiField("ur", "excerpt", value))}
             <RichTextEditor
               locale="ur"
               label="Urdu article body"
@@ -626,7 +650,11 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
               siteUrl={siteUrl}
               error={errors.slug}
             />
+            {suggest("slug", "en", (value) => setForm((prev) => ({ ...prev, slug: value, slugTouched: true })), {
+              disabledReason: form.titleEn.trim() ? undefined : "Add an English title first: the slug is based on it.",
+            })}
             <TagInput value={form.tags} onChange={(tags) => update("tags", tags)} options={tagOptions} />
+            {suggest("tags", tab, undefined, { onAddTag: addTag })}
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="featured">Featured on homepage</Label>
               <Switch id="featured" checked={form.isFeatured} onCheckedChange={(checked) => update("isFeatured", checked)} />
@@ -643,7 +671,17 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
             />
           </Panel>
 
-          <SeoPanel form={form} update={update} errors={errors} />
+          <SeoPanel
+            form={form}
+            update={update}
+            errors={errors}
+            renderSuggest={(key, locale) =>
+              suggest(key === "seoTitleEn" || key === "seoTitleUr" ? "seoTitle" : "seoDescription", locale, (value) => {
+                update(key, value);
+                markAiContent();
+              })
+            }
+          />
         </aside>
       </div>
 
@@ -769,14 +807,19 @@ function Field({
   );
 }
 
+type SeoKey = "seoTitleEn" | "seoTitleUr" | "seoDescriptionEn" | "seoDescriptionUr";
+
 function SeoPanel({
   form,
   update,
   errors,
+  renderSuggest,
 }: {
   form: Form;
   update: <K extends keyof Form>(key: K, value: Form[K]) => void;
   errors: FieldErrors;
+  /** AI suggestion control under each field (null when AI is off). */
+  renderSuggest?: (key: SeoKey, locale: Locale) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const counter = (value: string, recommended: number) => (
@@ -784,7 +827,7 @@ function SeoPanel({
       {value.length}/{recommended}
     </span>
   );
-  const rows: { key: "seoTitleEn" | "seoTitleUr" | "seoDescriptionEn" | "seoDescriptionUr"; label: string; ur: boolean; title: boolean }[] = [
+  const rows: { key: SeoKey; label: string; ur: boolean; title: boolean }[] = [
     { key: "seoTitleEn", label: "SEO title (English)", ur: false, title: true },
     { key: "seoDescriptionEn", label: "SEO description (English)", ur: false, title: false },
     { key: "seoTitleUr", label: "SEO title (Urdu)", ur: true, title: true },
@@ -824,6 +867,7 @@ function SeoPanel({
                 <Textarea {...common} rows={3} onChange={(e) => update(row.key, e.target.value)} />
               )}
               {errors[row.key] && <p className="text-xs text-destructive">{errors[row.key]}</p>}
+              {renderSuggest?.(row.key, row.ur ? "ur" : "en")}
             </div>
           );
         })}

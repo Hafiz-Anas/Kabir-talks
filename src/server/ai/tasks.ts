@@ -8,11 +8,12 @@ import { docToMarkdown, markdownToDoc, placeholder, placeholdersIn, splitMarkdow
 import { LANGUAGE_NAME, prompts } from "@/lib/ai/prompts";
 import { isExpectedScript, WRONG_SCRIPT_MESSAGE } from "@/lib/ai/script";
 import type { AiEvent, AiResults, ParsedAiTask, TranslatableField } from "@/lib/ai/tasks";
-import { LIMITS } from "@/lib/articles/rules";
-import { type ArticleDoc, sanitizeDoc } from "@/lib/content/document";
+import { LIMITS, SEO_RECOMMENDED } from "@/lib/articles/rules";
+import { isValidSlug, slugify } from "@/lib/articles/slug";
+import { type ArticleDoc, docToPlainText, sanitizeDoc } from "@/lib/content/document";
 
 import { imagePrefix } from "../storage";
-import { matchTags } from "./tags";
+import { existingTagNames, matchTags } from "./tags";
 
 /**
  * AI task handlers behind POST /api/admin/ai. The route has already called
@@ -156,6 +157,45 @@ export const handlers: Handlers = {
       removed = converted.removed;
     }
     return { fields, body, removed, warnings };
+  },
+
+  async suggest(input, ctx) {
+    const text = docToPlainText(sanitizeDoc(input.body, { imagePrefix: null }).doc).slice(0, 8000);
+    const context = { locale: input.locale, title: input.title.trim(), excerpt: input.excerpt.trim(), text };
+
+    if (input.kind === "slug") {
+      if (!context.title) throw new AiError("bad_request", "Add an English title first: the slug is based on it.");
+      const { timeoutMs, ...request } = prompts.suggestSlug({ title: context.title });
+      const { slug } = await generateJson(request, z.object({ slug: z.string().max(200) }), call(ctx, timeoutMs));
+      const clean = slugify(slug, 80);
+      const fallback = slugify(context.title, 80);
+      return { kind: input.kind, options: [isValidSlug(clean) ? clean : fallback].filter(Boolean), tags: null };
+    }
+
+    if (!context.title && !context.text) throw new AiError("bad_request", "Add a title or some body text first.");
+
+    if (input.kind === "tags") {
+      const existing = await existingTagNames();
+      const { timeoutMs, ...request } = prompts.suggestTags({ ...context, existing });
+      const { tags } = await generateJson(request, z.object({ tags: z.array(z.string().max(80)).max(12) }), call(ctx, timeoutMs));
+      return { kind: input.kind, options: [], tags: await matchTags(tags) };
+    }
+
+    const spec = {
+      headlines: { build: prompts.suggestHeadlines, key: "headlines", max: LIMITS.title },
+      excerpt: { build: prompts.suggestExcerpt, key: "excerpt", max: SEO_RECOMMENDED.description },
+      seoTitle: { build: prompts.suggestSeoTitle, key: "seoTitle", max: SEO_RECOMMENDED.title },
+      seoDescription: { build: prompts.suggestSeoDescription, key: "seoDescription", max: SEO_RECOMMENDED.description },
+    }[input.kind];
+    const { timeoutMs, ...request } = spec.build(context);
+    const schema = z.object({ [spec.key]: spec.key === "headlines" ? z.array(z.string().max(400)).min(1).max(10) : z.string().max(1000) });
+    const raw = (await generateJson(request, schema, call(ctx, timeoutMs)))[spec.key] as string | string[];
+
+    const options = [...new Set((Array.isArray(raw) ? raw : [raw]).map((value) => cleanLine(value, spec.max)))]
+      .filter((value) => value && isExpectedScript(value, input.locale))
+      .slice(0, 5);
+    if (!options.length) throw new AiError("invalid_output", WRONG_SCRIPT_MESSAGE[input.locale]);
+    return { kind: input.kind, options, tags: null };
   },
 };
 

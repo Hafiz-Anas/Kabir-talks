@@ -42,7 +42,18 @@ export const aiTaskSchema = z.discriminatedUnion("task", [
       body: z.unknown().nullable().default(null),
     })
     .refine((input) => input.from !== input.to, "Choose two different languages"),
+  z.object({
+    task: z.literal("suggest"),
+    kind: z.enum(["headlines", "excerpt", "seoTitle", "seoDescription", "tags", "slug"]),
+    locale,
+    title: z.string().max(LIMITS.title).default(""),
+    excerpt: z.string().max(LIMITS.excerpt).default(""),
+    /** Body (Tiptap JSON) for context; only its plain text is sent to the model. */
+    body: z.unknown().nullable().default(null),
+  }),
 ]);
+
+export type SuggestKind = Extract<z.output<typeof aiTaskSchema>, { task: "suggest" }>["kind"];
 
 export type TranslatableField = "title" | "excerpt" | "seoTitle" | "seoDescription";
 
@@ -74,6 +85,12 @@ export type AiResults = {
     body: ArticleDoc | null;
     removed: string[];
     warnings: string[];
+  };
+  suggest: {
+    kind: SuggestKind;
+    /** Text options to click (5 headlines; 1 for the other text kinds; empty for tags). */
+    options: string[];
+    tags: TagSuggestions | null;
   };
 };
 
