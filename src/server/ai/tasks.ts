@@ -197,6 +197,26 @@ export const handlers: Handlers = {
     if (!options.length) throw new AiError("invalid_output", WRONG_SCRIPT_MESSAGE[input.locale]);
     return { kind: input.kind, options, tags: null };
   },
+
+  async edit(input, ctx) {
+    const prefix = imagePrefix();
+    const selection = sanitizeDoc(input.selection, { imagePrefix: prefix }).doc;
+    const { markdown, blocks } = docToMarkdown(selection);
+    if (!markdown.trim()) throw new AiError("bad_request", "Select some text first.");
+    if (markdown.length > 12_000) throw new AiError("bad_request", "That selection is too long. Select a few paragraphs at a time.");
+
+    const { timeoutMs, ...request } = prompts.edit({ markdown, action: input.action, locale: input.locale });
+    let output = "";
+    for await (const delta of streamText(request, call(ctx, timeoutMs))) {
+      output += delta;
+      ctx.emit({ type: "delta", text: delta });
+    }
+    // The rewrite must stay in the selection's language.
+    if (!isExpectedScript(output, input.locale)) throw new AiError("invalid_output", WRONG_SCRIPT_MESSAGE[input.locale]);
+    const converted = markdownToDoc(output, { source: "ai", blocks, imagePrefix: prefix });
+    if (!converted.doc) throw new AiError("invalid_output");
+    return { doc: converted.doc, removed: converted.removed };
+  },
 };
 
 const FIELD_LIMITS: Record<TranslatableField, number> = {

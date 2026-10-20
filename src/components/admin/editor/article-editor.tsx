@@ -183,6 +183,11 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
     [markAiContent],
   );
 
+  const selectionAi = useMemo(
+    () => (aiEnabled ? { imagePrefix, onAccepted: markAiContent } : undefined),
+    [aiEnabled, imagePrefix, markAiContent],
+  );
+
   const addTag = useCallback((tag: TagValue) => {
     setForm((prev) => {
       const slug = slugify(tag.nameEn, 60);
@@ -530,6 +535,7 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
               onChange={onBodyEn}
               onReady={onReadyEn}
               uploadsEnabled={uploadsEnabled}
+              ai={selectionAi}
             />
           </TabsContent>
 
@@ -572,6 +578,7 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
               onChange={onBodyUr}
               onReady={onReadyUr}
               uploadsEnabled={uploadsEnabled}
+              ai={selectionAi}
             />
           </TabsContent>
         </Tabs>

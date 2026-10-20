@@ -4,7 +4,7 @@ import { LIMITS } from "@/lib/articles/rules";
 import type { ArticleDoc } from "@/lib/content/document";
 
 import type { AiErrorCode } from "./errors";
-import { DRAFT_LENGTHS, DRAFT_TONES } from "./prompts";
+import { DRAFT_LENGTHS, DRAFT_TONES, EDIT_ACTIONS, type EditAction } from "./prompts";
 
 /**
  * Wire protocol for POST /api/admin/ai, shared by the route (server) and
@@ -51,6 +51,13 @@ export const aiTaskSchema = z.discriminatedUnion("task", [
     /** Body (Tiptap JSON) for context; only its plain text is sent to the model. */
     body: z.unknown().nullable().default(null),
   }),
+  z.object({
+    task: z.literal("edit"),
+    action: z.enum(Object.keys(EDIT_ACTIONS) as [EditAction, ...EditAction[]]),
+    locale,
+    /** The selected content as a Tiptap doc; re-sanitized on the server. */
+    selection: z.unknown(),
+  }),
 ]);
 
 export type SuggestKind = Extract<z.output<typeof aiTaskSchema>, { task: "suggest" }>["kind"];
@@ -91,6 +98,10 @@ export type AiResults = {
     /** Text options to click (5 headlines; 1 for the other text kinds; empty for tags). */
     options: string[];
     tags: TagSuggestions | null;
+  };
+  edit: {
+    doc: ArticleDoc;
+    removed: string[];
   };
 };
 

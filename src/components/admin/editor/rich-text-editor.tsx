@@ -32,6 +32,7 @@ import { countWords, readingMinutes } from "@/lib/content/document";
 import { normalizeXStatusUrl, parseYouTubeId, safeLinkHref, youTubeWatchUrl } from "@/lib/content/urls";
 import { cn } from "@/lib/utils";
 
+import { SelectionAi } from "../ai/selection-ai";
 import { editorExtensions } from "./extensions";
 import { uploadImage } from "./upload-image";
 
@@ -44,6 +45,7 @@ export function RichTextEditor({
   onReady,
   uploadsEnabled,
   label,
+  ai,
 }: {
   locale: Locale;
   initialContent: JSONContent | null;
@@ -51,6 +53,8 @@ export function RichTextEditor({
   onReady?: (editor: Editor) => void;
   uploadsEnabled: boolean;
   label: string;
+  /** Selected-text AI menu; omit when AI is off. */
+  ai?: { imagePrefix: string | null; onAccepted: () => void };
 }) {
   const rtl = locale === "ur";
   const editor = useEditor({
@@ -87,6 +91,7 @@ export function RichTextEditor({
     <div className="overflow-hidden rounded-md border border-input bg-black focus-within:border-gold-muted">
       {editor ? <Toolbar editor={editor} uploadsEnabled={uploadsEnabled} /> : <div className="h-11 border-b border-border" />}
       <EditorContent editor={editor} />
+      {editor && ai && <SelectionAi editor={editor} locale={locale} imagePrefix={ai.imagePrefix} onAccepted={ai.onAccepted} />}
       <div className="flex justify-end gap-3 border-t border-border px-4 py-2 text-xs text-grey" dir="ltr">
         <span>{stats?.words ?? 0} words</span>
         <span aria-hidden>·</span>
