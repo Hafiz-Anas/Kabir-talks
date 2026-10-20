@@ -4,7 +4,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { ComingSoon } from "@/components/coming-soon";
+import { AiStatusCard } from "@/components/admin/ai/ai-status-card";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { aiStatus } from "@/lib/ai/config";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth-guards";
@@ -46,7 +48,6 @@ async function Dashboard() {
 
   const flags = [
     { label: "Image uploads (Supabase Storage)", enabled: features.storageEnabled },
-    { label: "AI features (Gemini)", enabled: features.aiEnabled },
     { label: "Google sign-in", enabled: features.googleAuthEnabled },
     { label: "Newsletter (Resend)", enabled: features.newsletterEnabled },
   ];
@@ -108,6 +109,8 @@ async function Dashboard() {
           </ul>
         )}
       </section>
+
+      <AiStatusCard status={aiStatus} />
 
       <section aria-labelledby="flags" className="space-y-4">
         <h2 id="flags" className="text-xl text-ivory">
