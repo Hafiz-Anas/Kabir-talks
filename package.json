@@ -6,21 +6,57 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "seed": "tsx src/db/seed.ts",
+    "seed:admin": "tsx src/db/seed-admin.ts",
+    "seed:demo": "tsx src/db/seed-demo.ts",
+    "storage:setup": "tsx scripts/setup-storage.ts",
+    "verify:content": "tsx scripts/verify-content.ts"
   },
   "dependencies": {
+    "@supabase/storage-js": "2.118.0",
+    "@tiptap/core": "3.32.0",
+    "@tiptap/extension-image": "3.32.0",
+    "@tiptap/extension-youtube": "3.32.0",
+    "@tiptap/extensions": "3.32.0",
+    "@tiptap/pm": "3.32.0",
+    "@tiptap/react": "3.32.0",
+    "@tiptap/starter-kit": "3.32.0",
+    "better-auth": "1.7.11",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "drizzle-orm": "0.45.4",
+    "lucide-react": "1.59.0",
     "next": "16.4.2",
+    "postgres": "3.4.9",
+    "radix-ui": "1.8.1",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1",
+    "tailwind-merge": "3.7.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
-    "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
+    "@tailwindcss/turbopack": "4.3.3",
+    "@types/node": "20.19.43",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "auth": "1.7.11",
+    "dotenv": "18.0.8",
+    "drizzle-kit": "0.31.11",
+    "eslint": "9.39.5",
     "eslint-config-next": "16.4.2",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "shadcn": "4.22.1",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "tw-animate-css": "1.4.0",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=20.9.0"
   }
 }

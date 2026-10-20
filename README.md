@@ -1,36 +1,362 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kabir Talks
 
-## Getting Started
+A bilingual (English + Urdu) news and blog platform, run by a single admin.
+One full-stack Next.js app: public site, admin area, and API in the same codebase, deployed to Vercel.
 
-First, run the development server:
+**Current status: Phase 2 of 7 (Admin core).** On top of the Phase 1 foundation (schema, auth, design system, layout shell), the admin can now write bilingual articles in a rich-text editor, upload images, manage categories, publish, and share. Public article pages arrive in Phase 4.
+
+---
+
+## Requirements
+
+- **Node.js 20.9 or newer** (developed and verified on Node 24.16.0, npm 11.13.0)
+- A **Supabase** project (free tier is fine)
+
+## Tech stack (pinned versions)
+
+| Area | Package | Version |
+| --- | --- | --- |
+| Framework | `next` | 16.4.2 |
+| UI runtime | `react` / `react-dom` | 19.3.0 |
+| Language | `typescript` (strict) | 5.9.3 |
+| Styling | `tailwindcss` / `@tailwindcss/turbopack` | 4.3.3 |
+| Components | `shadcn` (CLI + base CSS), `radix-ui` | 4.22.1 / 1.8.1 |
+| Component helpers | `class-variance-authority` / `clsx` / `tailwind-merge` / `tw-animate-css` / `lucide-react` | 0.7.1 / 2.1.1 / 3.7.0 / 1.4.0 / 1.59.0 |
+| Database driver | `postgres` (postgres-js) | 3.4.9 |
+| ORM / migrations | `drizzle-orm` / `drizzle-kit` | 0.45.4 / 0.31.11 |
+| Auth | `better-auth` (Drizzle adapter) / `auth` (Better Auth CLI) | 1.7.11 / 1.7.11 |
+| Validation | `zod` | 4.6.7 |
+| Rich-text editor | `@tiptap/react` / `starter-kit` / `extension-image` / `extension-youtube` / `extensions` / `core` / `pm` | 3.32.0 |
+| Image storage | `@supabase/storage-js` (server only) | 2.118.0 |
+| Scripts | `tsx` / `dotenv` | 4.23.15 / 18.0.8 |
+| Lint | `eslint` / `eslint-config-next` | 9.39.5 / 16.4.2 |
+
+Every version is pinned exactly in `package.json`, and `package-lock.json` is committed.
+
+---
+
+## 1. Install
+
+```bash
+npm install
+```
+
+> **Windows users:** run every command from a path whose letter-casing matches the real folders on disk (for example `C:\Users\<you>\Documents\...`, not `...\documents\...`). If the casing is wrong, Turbopack loads React twice and `npm run build` fails with `Cannot read properties of null (reading 'useContext')`. See [Troubleshooting](#troubleshooting).
+
+## 2. Create the Supabase project and get both connection strings
+
+1. Create a project at [supabase.com](https://supabase.com) and save the database password.
+2. In the project dashboard, click **Connect** (top bar).
+3. Copy two connection strings and put your password in place of `[YOUR-PASSWORD]`:
+   - **Transaction pooler** (host `…pooler.supabase.com`, **port 6543**) → `DATABASE_URL`.
+     The app uses this at runtime. It suits serverless (Vercel) but does not support prepared statements, so the client uses `prepare: false` (see `src/db/index.ts`).
+   - **Direct connection** (host `db.<project-ref>.supabase.co`, **port 5432**) → `DIRECT_URL`.
+     This is used **only** by `drizzle-kit` for migrations.
+     If your network has no IPv6 and the direct host won't connect, use the **Session pooler** string (also port 5432) instead.
+
+## 3. Configure environment variables
+
+```bash
+cp .env.example .env.local
+```
+
+Fill in `.env.local`. Every variable is explained in `.env.example`.
+
+| Variable | Required? | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | yes | Transaction pooler, port 6543 (runtime) |
+| `DIRECT_URL` | for migrations | Direct connection, port 5432 |
+| `BETTER_AUTH_SECRET` | yes | 32+ random characters. Generate with `npx auth secret` |
+| `BETTER_AUTH_URL` | yes | Site URL, e.g. `http://localhost:3000` |
+| `NEXT_PUBLIC_SITE_URL` | yes | Same as above in most setups |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | for `seed:admin` | The single admin account |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | optional | Enables "Continue with Google" |
+| `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | from Phase 2 | Image uploads (service key is server-only) |
+| `GEMINI_API_KEY` | optional | Enables AI features (Phases 3 and 6) |
+| `RESEND_API_KEY` | optional | Enables the newsletter (Phase 7) |
+
+Variables are validated with Zod in `src/lib/env.ts`. A missing required value stops the app at startup with a clear list of what's wrong. Missing optional values only turn their feature off through `src/lib/features.ts`, which then shows "Coming soon" or "Not configured" instead of crashing.
+
+**Google OAuth (optional):** in the Google Cloud Console, create an OAuth client of type *Web application* and add this authorised redirect URI: `<BETTER_AUTH_URL>/api/auth/callback/google`.
+
+## 4. Run migrations
+
+```bash
+npm run db:migrate
+```
+
+This applies `drizzle/0000_init.sql` (all 14 tables, enums, indexes, and constraints) and `drizzle/0001_enable_rls.sql` over `DIRECT_URL`.
+
+`0001` turns on Row Level Security (with no policies) for every table. Supabase exposes the `public` schema through its auto-generated REST API, and this app never uses that API: it connects as the `postgres` role, which bypasses RLS. Enabling RLS shuts the REST API out without affecting the app.
+
+When you change the schema later:
+
+```bash
+npm run db:generate   # writes a new SQL file in drizzle/
+npm run db:migrate    # applies it
+npm run db:studio     # optional: browse the data
+```
+
+## 5. Seed base data and create the admin
+
+```bash
+npm run seed         # categories + ad slots (safe to re-run)
+npm run seed:admin   # admin from ADMIN_EMAIL / ADMIN_PASSWORD
+```
+
+- `seed` upserts **Current Affairs / حالات حاضرہ** (`current-affairs`) and **Sports / کھیل** (`sports`). It also inserts the five ad slots (`home-top`, `home-feed`, `article-top`, `article-inline`, `article-bottom`), disabled and empty. If you run it again, ad slots that already exist are not touched.
+- `seed:admin` creates the admin with role `admin`, using Better Auth's own password hashing. If a user with that email already exists, it promotes them to admin and leaves their password alone. To also replace the password with the one in env, run `npm run seed:admin -- --reset-password`.
+
+Credentials are never hard-coded. They come only from env.
+
+**Optional demo content** for trying out the admin:
+
+```bash
+npm run seed:demo    # 6 sample articles; needs `seed` and `seed:admin` first
+```
+
+This creates six articles whose slugs start with `demo-`. They mix English-only, Urdu-only, and bilingual content, include both drafts and published articles, cover both categories, and one is featured. They use no external images. Running it twice is safe: articles that already exist (matched by slug) are left alone. It never runs automatically. To remove the demo content, delete the `demo-*` articles in the admin.
+
+## 6. Set up image uploads (Supabase Storage)
+
+Cover images and inline images are stored in a **public-read** Supabase Storage bucket named `article-images`. Without this setup the editor still works, but the image buttons show "Storage not configured".
+
+1. In the Supabase dashboard, open **Project Settings → API** and copy:
+   - the **Project URL** into `NEXT_PUBLIC_SUPABASE_URL`
+   - the **service_role** secret key into `SUPABASE_SERVICE_ROLE_KEY`. This key bypasses all security: it is only read on the server (`src/server/storage.ts` imports `server-only`) and must **never** get a `NEXT_PUBLIC_` prefix.
+2. Create the bucket:
+
+   ```bash
+   npm run storage:setup
+   ```
+
+   This creates the bucket, or updates it if it exists, with: **public** read access, a **5 MB** file size limit, and only `image/jpeg`, `image/png`, `image/webp`, `image/avif` allowed.
+
+   *If you prefer the dashboard:* **Storage → New bucket**, name `article-images`, turn on **Public bucket**, then under the bucket's settings set the file size limit to 5 MB and the allowed MIME types to the four above.
+3. **Policies: add none.** A public bucket lets anyone *read* a file by its URL. With no policies on `storage.objects`, the `anon` and `authenticated` roles can't upload, change, delete, or list anything. Only the server can write, using the service role key.
+4. Restart `npm run dev` (or rebuild) so `next.config.ts` picks up the Supabase host for `next/image` (`images.remotePatterns`, limited to `/storage/v1/object/public/article-images/**`).
+
+**How an upload works** (`src/server/uploads.ts`). Both steps are server actions that call `requireAdmin()`:
+
+1. `createImageUpload` checks the declared type and size and generates an unguessable path `articles/{yyyy}/{mm}/{uuid}.{ext}`. It then returns a short-lived **signed upload URL** that works only for that path and can't overwrite an existing file.
+2. The browser uploads the file straight to Supabase with a progress bar. Large files never pass through the app server, which also avoids Vercel's 4.5 MB request limit.
+3. `finalizeImageUpload` reads the stored file back and checks its real type from the first bytes ("magic numbers"), not from the extension or the declared type. It also checks the size and that the type matches the extension. Anything that fails is deleted. Only after that does the editor get the public URL.
+
+When saving, and again when rendering, an image is accepted only if its URL is in this bucket and matches that path pattern. External image URLs and `data:` URIs are stripped.
+
+## 7. Run locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- <http://localhost:3000> redirects to `/en`
+- `/en` is the English site (LTR) and `/ur` is the Urdu site (RTL, Noto Nastaliq Urdu)
+- `/login` has sign-in and reader sign-up
+- `/admin` is for the admin only
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### All scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | What it does |
+| --- | --- |
+| `dev` / `build` / `start` | Next.js dev server, production build, production server |
+| `lint` / `typecheck` | ESLint; route type generation + `tsc --noEmit` |
+| `db:generate` / `db:migrate` / `db:studio` | Drizzle migrations (see step 4) |
+| `seed` / `seed:admin` | Categories + ad slots; the admin account |
+| `seed:demo` | Optional demo articles (see step 5) |
+| `storage:setup` | Creates/updates the `article-images` bucket (see step 6) |
+| `verify:content` | Self-checks for the content safety rules: link, YouTube and X URL allow-lists, Tiptap sanitizer, HTML renderer escaping, image magic bytes, slugs, publish checklist. No database needed. |
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Admin guide
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Sign in at `/login` with the admin account and open `/admin`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Dashboard
 
-## Deploy on Vercel
+The dashboard has cards for total, published, and draft articles and for categories. Below them are your five most recently edited articles and a **New article** button. On a phone, the sidebar becomes a menu behind the ☰ button. Items marked *Coming soon* (Comments, Subscribers, Ads, Analytics, Settings) arrive in later phases.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Writing an article
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Click **New article**. The editor has two tabs: **English** and **اردو**. You can write either language, or both. The dot on each tab shows its state: empty (outline), incomplete (gold), or complete (green, meaning it has a title and body).
+2. In each tab, add a **title**, an optional **excerpt** (shown on cards and share previews), and the **body**. The Urdu tab is fully right-to-left and uses the Nastaliq font. Lists, quotes, and cursor movement all run right to left.
+3. The toolbar has: H2/H3 headings; bold, italic, underline, strikethrough; bulleted and numbered lists; quote; divider; link; image; YouTube; X post; undo/redo. Word count and reading time appear under each editor.
+   - **Links:** only `http://`, `https://`, and `mailto:` are allowed. Typing `example.com` becomes `https://example.com`.
+   - **Images:** JPEG, PNG, WebP, or AVIF up to 5 MB. **Alt text is required.** A caption is optional.
+   - **YouTube:** paste a `youtube.com` or `youtu.be` link. Readers get a privacy-friendly `youtube-nocookie.com` player.
+   - **X/Twitter:** paste a post link (`x.com/<user>/status/<id>`). It is stored as a link and shown as a card.
+4. In the side panel (under the editor on phones):
+   - **Category:** required.
+   - **URL slug:** filled in automatically from the English title (Urdu-only articles get `article-xxxxxxxx` unless you type one). It must be lowercase words joined by hyphens. You'll see live whether it's free. Once an article has been published, changing its slug asks for confirmation, because links people already shared would break.
+   - **Tags:** pick existing tags or type a new one and press Enter.
+   - **Featured on homepage**
+   - **Cover image:** upload, replace, or remove. Alt text is required.
+   - **Search & social (SEO):** optional SEO titles and descriptions per language, with character counters. If you leave them empty, the title and excerpt are used.
+5. **Save draft** (or **Ctrl/Cmd + S**). The header shows *Saving…*, *Saved*, or *Unsaved changes*. If you try to close the tab or follow a link with unsaved changes, you'll be asked first.
+
+Pasted content is cleaned on the server. Anything the toolbar can't produce, such as scripts, tables, code blocks, `javascript:` links, or external images, is removed. After saving you'll see a note listing what was removed.
+
+**AI assist** and **Translate to Urdu** are visible but disabled until Phase 3.
+
+### Publishing
+
+- **Publish** needs: a category, a slug, and **at least one complete language** (title + body). If there's a cover image, it also needs alt text. The *Ready to publish?* checklist in the side panel shows what's missing, and a blocked publish opens the same checklist.
+- After publishing, a **Published!** screen shows:
+  - the public link for each completed language: `{NEXT_PUBLIC_SITE_URL}/en/{category}/{slug}` and `/ur/...`
+  - **Copy link** buttons
+  - one-tap sharing to WhatsApp, Facebook, X, LinkedIn, and Telegram
+  - a preview of the share card
+  - **View article**, **Edit again**, and **Write another**
+
+  *Until Phase 4 builds the public article pages, these links show a 404.*
+- **Unpublish** returns the article to Draft. **Archive** hides it but keeps it. You can move it back to drafts later.
+- **Re-publishing** keeps the original publish date, unless you tick *Update the published date to now*.
+- Editing a live article and saving updates it straight away. A live article must stay complete; to remove a language entirely, unpublish first.
+- Every publish, unpublish, archive, delete, and live edit refreshes the cached homepage, category page, and article page (`src/server/revalidate.ts`).
+
+### Preview
+
+**Preview** (in the editor's side panel or the list's ⋯ menu) shows the article as readers will see it, with the site's typography, cover image, and embeds, in English or Urdu. Only admins can open it. It works for drafts too.
+
+### Article list
+
+`/admin/articles` lists articles 20 per page. You can filter by status and category, search titles in English or Urdu, and sort by last updated or published date. The ⋯ menu on each row has: Edit, Preview, Publish or Unpublish, Copy link (published only), Archive, and Delete. Delete asks for confirmation and suggests **Archive** as the safer choice, because deleting also removes the article's comments and stats permanently.
+
+### Categories
+
+`/admin/categories` lets you add or edit categories:
+
+- English and Urdu names (both required)
+- slug: automatic from the English name, must be unique; `en`, `ur`, `admin`, `login`, and `api` are reserved
+- descriptions
+- order: use the ↑/↓ buttons
+
+A category with articles can't be deleted directly. The dialog shows how many articles it has and lets you move them all to another category, then delete it, in one step.
+
+---
+
+## How things fit together
+
+### Folder structure
+
+```
+src/
+  app/
+    [locale]/               public site root layout (<html lang dir>), homepage, category placeholder, localized 404
+    (internal)/             root layout for non-localised pages (route group: not part of the URL)
+      admin/                protected admin: layout gate, dashboard, articles (list, new, [id], [id]/preview), categories
+      login/                sign-in / sign-up
+    api/auth/[...all]/      Better Auth handler
+    global-not-found.tsx    404 for URLs that match nothing (e.g. /fr)
+    global-error.tsx
+    globals.css             design tokens (colours, fonts) — change them here only
+  components/
+    admin/                  admin shell nav, row actions, publish dialogs, category manager
+      editor/               Tiptap editor, toolbar, extensions, slug/tag/cover fields, upload client
+    content/article-body.tsx   renders a stored article body (shared with Phase 4)
+    layout/                 header, footer, logo, language switcher
+    ui/                     shadcn components
+    coming-soon.tsx         <ComingSoon /> badge / panel
+    skeleton-card.tsx, section-heading.tsx
+  db/
+    schema/                 auth, content, readers, ai, growth, relations, _shared
+    index.ts                single shared postgres-js + Drizzle client
+    seed.ts, seed-admin.ts, seed-demo.ts, load-env.ts
+  i18n/                     config (locales, dir), en.ts, ur.ts dictionaries
+  lib/
+    content/                document.ts (Tiptap allow-list + sanitizer), render.ts (JSON → safe HTML), urls.ts (URL allow-lists)
+    articles/               rules.ts (publish checklist), slug.ts, validation.ts (Zod payload schema)
+    uploads/file-type.ts    image magic-byte detection
+    cache-tags.ts, urls.ts  cache tag names; public URL + share-link builders
+    auth, auth-client, auth-guards, env, features, fonts, navigation, utils
+  server/                   all data access (server only)
+    articles.ts, categories.ts           ADMIN reads (requireAdmin, include drafts)
+    article-actions.ts, category-actions.ts, uploads.ts   server actions (requireAdmin + Zod)
+    public/articles.ts      PUBLIC reads: published only, "use cache" + tags (for Phase 4)
+    revalidate.ts, storage.ts            cache invalidation; service-role Storage client
+  proxy.ts                  optimistic /admin redirect (no session cookie → /login)
+drizzle/                    SQL migrations + snapshots
+scripts/                    setup-storage.ts, verify-content.ts
+```
+
+`admin/` and `login/` sit in the `(internal)` route group because they need their own root layout: English UI, no `[locale]` segment. The group name never shows up in URLs, so the paths are still `/admin` and `/login`.
+
+### Authentication and access control
+
+- Better Auth handles email/password and Google sign-in. Google only appears when both of its env vars are set.
+- Reading the site **never** requires login.
+- `user.role` is `admin` or `reader` and defaults to `reader`. It is declared `input: false`, so sign-up requests can't set it. (This was tested: a sign-up that sent `"role":"admin"` was stored as `reader`.)
+- `src/lib/auth-guards.ts` provides `getSession()`, `requireUser()`, and `requireAdmin()`. `requireAdmin()` redirects logged-out visitors to `/login` and gives signed-in non-admins a **404**.
+- `/admin` is protected in three layers:
+  1. `src/proxy.ts` redirects requests that have no session cookie. This is an optimistic check only.
+  2. `admin/layout.tsx` calls `requireAdmin()` before rendering anything.
+  3. Every admin page calls `requireAdmin()` again.
+  4. Every admin server action (`src/server/*-actions.ts`, `uploads.ts`) and admin read (`src/server/articles.ts`, `categories.ts`) calls `requireAdmin()` itself. Server actions can be POSTed to *any* page URL, so the proxy and layout don't protect them.
+
+  **Rule for later phases:** every admin server action and route handler must call `requireAdmin()` itself. Hiding a link is never enough.
+
+### Article content and safety
+
+- Bodies are stored as Tiptap JSON in `body_en` / `body_ur` (jsonb). `sanitizeDoc` (`src/lib/content/document.ts`) is the single allow-list of nodes and marks: paragraph, H2/H3, lists, quote, divider, image, YouTube, X post, hard break; bold, italic, underline, strike, link. It runs **on every save** and **again at render time**.
+- `renderDocToHtml` (`src/lib/content/render.ts`) escapes all text and attributes, re-checks every link and image URL, and outputs YouTube only as a `youtube-nocookie.com` iframe. It never passes through raw HTML from the database. Phase 4 public pages use the same renderer through `<ArticleBody />`.
+- Data access is split: `src/server/public/*` only ever returns `PUBLISHED` rows and is safe for public pages. Admin reads and all mutations are separate and guarded.
+
+### Next.js 16 Cache Components
+
+This project keeps Next 16's defaults: `cacheComponents: true` and `partialPrefetching: true`. Reading cookies or headers (which includes any session check) has to happen **inside a `<Suspense>` boundary**, or the build fails. See `admin/layout.tsx` and `admin/page.tsx` for the pattern. Static UI can be prerendered or cached with `"use cache"`. The framework's own guides are in `node_modules/next/dist/docs/`.
+
+### Locales and RTL
+
+- Locales are configured in `src/i18n/config.ts` (`en` → `ltr`, `ur` → `rtl`). UI strings live in `src/i18n/en.ts` and `src/i18n/ur.ts`, typed so that Urdu must have every English key.
+- Layouts use logical utilities only (`ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`), so they flip automatically in RTL.
+- Urdu text uses Noto Nastaliq Urdu with `line-height: 2`. The brand wordmark stays in Latin type.
+- The language switcher swaps only the locale segment, so `/en/sports` becomes `/ur/sports`.
+
+### Design tokens
+
+All colours and fonts are CSS variables in `src/app/globals.css`, exposed as Tailwind tokens: `bg-black`, `bg-obsidian`, `bg-obsidian-raised`, `text-gold`, `hover:text-gold-soft`, `text-ivory`, `text-grey`, `font-serif` (Playfair Display), `font-sans` (Inter), and `font-urdu`. shadcn's semantic tokens (`primary`, `muted`, and so on) map onto the same palette. Fonts are loaded once in `src/lib/fonts.ts`.
+
+### Database schema overview
+
+| Area | Tables |
+| --- | --- |
+| Auth | `user` (+ `role`), `session`, `account`, `verification` |
+| Content | `categories`, `articles`, `tags`, `article_tags` |
+| Readers | `bookmarks`, `comments` (threaded via `parent_id`, moderated via `status`) |
+| AI | `ai_summaries` (unique per article + locale = generate once, cache) |
+| Growth | `newsletter_subscribers`, `ad_slots`, `article_views` (daily counter) |
+
+Integrity rules:
+
+- Deleting a category that still has articles is **blocked** (`ON DELETE RESTRICT`). Reassign the articles first.
+- Deleting a user who authored articles is blocked too.
+- Deleting an article cascades to its tags, bookmarks, comments, summaries, and views.
+- Every article must have at least one title (`title_en` or `title_ur`).
+- A `PUBLISHED` article must have `published_at`.
+- Indexes: `articles(status, published_at desc)`, `articles(category_id)`, `comments(article_id, status)`, and others.
+
+---
+
+## Roadmap
+
+1. **Foundation** (done): setup, schema, auth, design system, layout shell
+2. **Admin core** (done): Tiptap editor, articles, categories, image uploads (Supabase Storage), publish + share screen, preview
+3. **Admin AI:** prompt-to-draft, English→Urdu translation, headline/excerpt/SEO suggestions (Gemini). Gated by `features.aiEnabled`
+4. **Public site:** homepage, category and article pages from the database, Urdu RTL article layout, "coming soon" badges for missing translations
+5. **Reader accounts:** profiles, bookmarks, comments with moderation
+6. **Reader AI:** summaries (cached in `ai_summaries`), "ask this article" chat, text-to-speech
+7. **Growth and launch:** newsletter (gated by `features.newsletterEnabled`), ads (`ad_slots`), SEO, analytics (`article_views`), Vercel deployment with a custom domain
+
+---
+
+## Troubleshooting
+
+- **`npm run build` fails with `Cannot read properties of null (reading 'useContext')` on Windows.** The terminal's current path has the wrong letter-casing, e.g. `cd C:\Users\me\documents\...` when the folder is really `Documents`. Turbopack then sees two copies of React. `cd` again using the exact casing shown in File Explorer.
+- **`Invalid environment variables` at startup.** The message lists each missing or malformed variable. Compare `.env.local` with `.env.example`.
+- **`DIRECT_URL is not set`** when running `db:migrate`. Add the direct (port 5432) connection string to `.env.local`.
+- **`prepared statement … does not exist`.** `DATABASE_URL` points at the transaction pooler but something created a client without `prepare: false`. Always import `db` from `@/db`.
+- **Image buttons say "Storage not configured".** `NEXT_PUBLIC_SUPABASE_URL` and/or `SUPABASE_SERVICE_ROLE_KEY` are missing. See step 6.
+- **"Couldn't start the upload. Check that the article-images bucket exists."** Run `npm run storage:setup`.
+- **Uploaded images don't display (`next/image` error about an unconfigured host).** Restart the dev server or rebuild after setting `NEXT_PUBLIC_SUPABASE_URL`, because `next.config.ts` reads it at startup.
+- **Saving says "Unsupported content was removed".** Pasted content contained something the editor doesn't support (see *Article content and safety*). Check the article, then save again.

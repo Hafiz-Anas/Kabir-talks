@@ -1,0 +1,23 @@
+import "../globals.css";
+
+import type { Metadata } from "next";
+
+import { fontVariables } from "@/lib/fonts";
+
+/**
+ * Root layout for non-localised pages (/login, /admin). English UI, LTR.
+ * The "(internal)" route group does not appear in URLs.
+ */
+
+export const metadata: Metadata = {
+  title: { default: "Kabir Talks", template: "%s · Kabir Talks" },
+  robots: { index: false, follow: false },
+};
+
+export default function InternalLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" dir="ltr" className={fontVariables}>
+      <body className="min-h-dvh">{children}</body>
+    </html>
+  );
+}

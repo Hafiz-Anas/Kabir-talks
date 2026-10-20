@@ -1,0 +1,44 @@
+import "server-only";
+
+import { headers } from "next/headers";
+import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
+
+import { auth } from "@/lib/auth";
+import { safeRedirectPath } from "@/lib/utils";
+
+/**
+ * Server-side auth helpers. These are the ONLY source of truth for access
+ * control: hiding links in the UI is never enough.
+ *
+ * Call `requireAdmin()` at the top of every admin layout, page, server action
+ * and route handler. Under Cache Components, pages/layouts must call these
+ * from inside a <Suspense> boundary because they read request headers.
+ */
+
+/** Current session or null. Deduplicated per request. */
+export const getSession = cache(async () => {
+  return auth.api.getSession({ headers: await headers() });
+});
+
+function loginUrl(next: string) {
+  return `/login?next=${encodeURIComponent(safeRedirectPath(next))}`;
+}
+
+/** Signed-in user (any role). Redirects to /login otherwise. */
+export async function requireUser(next = "/") {
+  const session = await getSession();
+  if (!session) redirect(loginUrl(next));
+  return session;
+}
+
+/**
+ * Signed-in admin. Logged-out visitors are sent to /login; signed-in
+ * non-admins get a 404 so the admin area isn't advertised.
+ */
+export async function requireAdmin(next = "/admin") {
+  const session = await getSession();
+  if (!session) redirect(loginUrl(next));
+  if (session.user.role !== "admin") notFound();
+  return session;
+}
