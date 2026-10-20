@@ -3,7 +3,14 @@
 A bilingual (English + Urdu) news and blog platform, run by a single admin.
 One full-stack Next.js app: public site, admin area, and API in the same codebase, deployed to Vercel.
 
-**Current status: Phase 2 of 7 (Admin core).** On top of the Phase 1 foundation (schema, auth, design system, layout shell), the admin can now write bilingual articles in a rich-text editor, upload images, manage categories, publish, and share. Public article pages arrive in Phase 4.
+**Current status: Phase 3 of 7 (Admin AI).** On top of the Phase 1 foundation and the Phase 2 admin core (bilingual Tiptap editor, image uploads, categories, publish and share), the admin can now:
+
+- draft articles with AI
+- translate English ⇄ Urdu
+- get headline, excerpt, SEO, tag and slug suggestions
+- rewrite selected text
+
+All AI features run on Google Gemini, and every AI change needs an explicit click, with a review step before publishing. Public article pages arrive in Phase 4.
 
 ---
 
@@ -26,7 +33,8 @@ One full-stack Next.js app: public site, admin area, and API in the same codebas
 | ORM / migrations | `drizzle-orm` / `drizzle-kit` | 0.45.4 / 0.31.11 |
 | Auth | `better-auth` (Drizzle adapter) / `auth` (Better Auth CLI) | 1.7.11 / 1.7.11 |
 | Validation | `zod` | 4.6.7 |
-| Rich-text editor | `@tiptap/react` / `starter-kit` / `extension-image` / `extension-youtube` / `extensions` / `core` / `pm` | 3.32.0 |
+| Rich-text editor | `@tiptap/react` / `starter-kit` / `extension-image` / `extension-youtube` / `extension-bubble-menu` / `extensions` / `core` / `pm` | 3.32.0 |
+| AI | `@google/genai` (Google Gen AI SDK, server only) | 2.27.0 |
 | Image storage | `@supabase/storage-js` (server only) | 2.118.0 |
 | Scripts | `tsx` / `dotenv` | 4.23.15 / 18.0.8 |
 | Lint | `eslint` / `eslint-config-next` | 9.39.5 / 16.4.2 |
@@ -72,7 +80,11 @@ Fill in `.env.local`. Every variable is explained in `.env.example`.
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | for `seed:admin` | The single admin account |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | optional | Enables "Continue with Google" |
 | `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | from Phase 2 | Image uploads (service key is server-only) |
-| `GEMINI_API_KEY` | optional | Enables AI features (Phases 3 and 6) |
+| `GEMINI_API_KEY` | optional | Enables AI features (Phases 3 and 6). Server-only. See [AI setup](#8-ai-setup-gemini) |
+| `GEMINI_MODEL` | optional | Gemini model code; default `gemini-3.8-flash` |
+| `AI_PROVIDER` | optional | `gemini` (default) or `mock` (fake AI for local development; ignored in production builds) |
+| `AI_RATE_LIMIT_PER_MINUTE` | optional | Cost guard: AI model calls per admin per minute (default 30) |
+| `DATABASE_POOL_MAX` | optional | Override the DB pool size (default 1 in production, 5 in dev). Set to `1` only for a single-backend stand-in like PGlite |
 | `RESEND_API_KEY` | optional | Enables the newsletter (Phase 7) |
 
 Variables are validated with Zod in `src/lib/env.ts`. A missing required value stops the app at startup with a clear list of what's wrong. Missing optional values only turn their feature off through `src/lib/features.ts`, which then shows "Coming soon" or "Not configured" instead of crashing.
@@ -85,7 +97,11 @@ Variables are validated with Zod in `src/lib/env.ts`. A missing required value s
 npm run db:migrate
 ```
 
-This applies `drizzle/0000_init.sql` (all 14 tables, enums, indexes, and constraints) and `drizzle/0001_enable_rls.sql` over `DIRECT_URL`.
+This applies these migrations over `DIRECT_URL`:
+
+- `drizzle/0000_init.sql`: all 14 tables, enums, indexes, and constraints
+- `drizzle/0001_enable_rls.sql`: Row Level Security
+- `drizzle/0002_ai_review_pending.sql` (Phase 3): adds one boolean column, `articles.ai_review_pending`, default `false`. It's safe on existing data. See [AI review safeguard](#ai-review-safeguard).
 
 `0001` turns on Row Level Security (with no policies) for every table. Supabase exposes the `public` schema through its auto-generated REST API, and this app never uses that API: it connects as the `postgres` role, which bypasses RLS. Enabling RLS shuts the REST API out without affecting the app.
 
@@ -166,6 +182,59 @@ npm run dev
 | `seed:demo` | Optional demo articles (see step 5) |
 | `storage:setup` | Creates/updates the `article-images` bucket (see step 6) |
 | `verify:content` | Self-checks for the content safety rules: link, YouTube and X URL allow-lists, Tiptap sanitizer, HTML renderer escaping, image magic bytes, slugs, publish checklist. No database needed. |
+| `verify:ai` | Self-checks for the AI pipeline: Markdown ⇄ Tiptap round trips (incl. Urdu and mixed text), image/embed placeholders, stripping of malicious AI output, Urdu-script check, JSON validation, mock provider, rate limiter. No database or API key needed. |
+
+## 8. AI setup (Gemini)
+
+AI is optional. With no AI variables set, the app builds and runs normally, and every AI button shows **Coming soon**.
+
+### Get a Gemini API key
+
+1. Go to [Google AI Studio](https://aistudio.google.com) and sign in with a Google account.
+2. Click **Get API key** → **Create API key**. You can attach it to a new or existing Google Cloud project.
+3. Put it in `.env.local`, and later in your Vercel project's environment variables:
+
+   ```bash
+   GEMINI_API_KEY="your-key"
+   ```
+
+   The key is **server-only**. Only `src/lib/ai/gemini.ts` reads it, and that file imports `server-only`. The browser only talks to this app's own `/api/admin/ai` endpoint and never to Google. This was checked by building with a dummy key and searching the browser bundles for the key, the model name and Google endpoints: none were found.
+4. Restart `npm run dev`. The dashboard's **AI status** card shows `Gemini (gemini-3.8-flash)`. Click **Test connection** to send one tiny request. It shows *Connected* or a clear error, such as a rejected key or a quota problem.
+
+### Choosing a model
+
+`GEMINI_MODEL` is optional. The default is **`gemini-3.8-flash`**, which Google's model list ([ai.google.dev/gemini-api/docs/models](https://ai.google.dev/gemini-api/docs/models)) marked as stable on 2026-10-20 and recommends for new projects: fast, cheap, a 65,536-token output limit, and structured output. For a cheaper and faster option, set `GEMINI_MODEL=gemini-3.5-flash-lite`. Use stable model codes rather than `-preview` ones, and check that page before changing.
+
+### Mock mode (development without a key)
+
+```bash
+AI_PROVIDER=mock
+```
+
+The mock provider gives **fake but deterministic** output for every feature. It streams with small delays, produces a fake word-swap Urdu "translation" that keeps all formatting and embeds, and returns fake suggestions. No requests leave your machine and it costs nothing. It's for building and testing the UI, not for content: the text is nonsense on purpose.
+
+Mock mode **only works in development**. In a production build (`npm run build` + `npm start`, or Vercel), `AI_PROVIDER=mock` is ignored, AI shows as *Not configured*, and the dashboard says why.
+
+For testing error states, the mock responds to markers in your prompt or text:
+
+| Marker | Effect |
+| --- | --- |
+| `[[mock:error=quota]]` | A quota error. Also works with `rate_limited`, `safety`, `timeout`, `network`, `unavailable` and `config`. |
+| `[[mock:slow]]` | Slow output, to try the **Stop** button |
+| `[[mock:hindi]]` / `[[mock:roman]]` | Urdu output in the wrong script |
+| `[[mock:evil]]` | Unsafe output, to see it stripped |
+| `[[mock:badjson]]` | Broken JSON for suggestions |
+
+### Costs and limits
+
+- **Cost guard.** Each admin can make at most **30 AI model calls per minute** by default; change this with `AI_RATE_LIMIT_PER_MINUTE`. Each action uses a few calls:
+  - a draft is 2 calls (article + title/excerpt/tags)
+  - a translation is 1 call for the fields plus 1 per section of the body (roughly every 6,000 characters)
+  - a suggestion or a selected-text edit is 1 call
+- **Limitation:** the counter is kept in memory. That's fine for one admin on one server. On Vercel, each warm serverless instance keeps its own counter and cold starts reset it, so the real ceiling can be higher. Move it to Postgres or Redis before reader-facing AI (Phase 6).
+- **Per call:** every call has a timeout (20–120 s depending on the task), an output-token cap (16 to 8,192 tokens), and low "thinking" to keep cost and latency down.
+- **Google's own limits:** Gemini's free tier has per-minute and per-day limits. When they're hit, the editor shows a friendly "quota" or "too many requests" message with **Retry**, and your article is never changed. Pricing and limits are on Google's [pricing page](https://ai.google.dev/gemini-api/docs/pricing). Set a budget alert in Google Cloud if you enable billing.
+- **Privacy in logs.** Server logs record only the task name, outcome, duration and a running count, e.g. `[ai] draft-body ok 662ms (count 1)`. Prompts and article text are never logged.
 
 ---
 
@@ -176,6 +245,8 @@ Sign in at `/login` with the admin account and open `/admin`.
 ### Dashboard
 
 The dashboard has cards for total, published, and draft articles and for categories. Below them are your five most recently edited articles and a **New article** button. On a phone, the sidebar becomes a menu behind the ☰ button. Items marked *Coming soon* (Comments, Subscribers, Ads, Analytics, Settings) arrive in later phases.
+
+The **AI status** card shows **Not configured** (with the reason), **Mock mode**, or **Gemini (model)**. **Test connection** sends one tiny request.
 
 ### Writing an article
 
@@ -197,11 +268,72 @@ The dashboard has cards for total, published, and draft articles and for categor
 
 Pasted content is cleaned on the server. Anything the toolbar can't produce, such as scripts, tables, code blocks, `javascript:` links, or external images, is removed. After saving you'll see a note listing what was removed.
 
-**AI assist** and **Translate to Urdu** are visible but disabled until Phase 3.
+### AI tools
+
+When AI is configured (see [AI setup](#8-ai-setup-gemini)), these tools appear in the editor. Without it they show *Coming soon*. **AI never changes your article until you click to apply something**, and nothing is ever published automatically.
+
+**Write with AI** (the **AI assist** button, top right):
+
+1. Describe the article, e.g. *"Write an article about Pakistan's series win against England"*.
+2. Optionally paste **key facts and notes**: figures, quotes, names, dates and sources. The AI is told to use only these and not to invent quotes, statistics, names or dates. Without notes, it keeps claims general.
+3. Pick the **language** (English or اردو), **length** (short ~400 words, medium ~800, long ~1,200) and **tone** (news report, analysis, opinion, explainer). Then click **Generate draft**.
+4. The draft streams into the panel's preview, not into your article. **Stop** cancels at any time.
+5. When it's done, choose:
+   - **Insert into editor**, only when that language's body is empty
+   - **Replace current content…**, which asks for confirmation first
+   - **Append below**
+
+   The title and excerpt are filled in only if they're empty; otherwise they're offered with a *Use this … instead* button. Suggested tags are added only when you click them.
+6. The insertion is **one undo step**: press **Ctrl+Z** in the editor to take it back.
+
+An Urdu draft must come back in Urdu script. If the AI answers in Hindi (Devanagari) or Roman Urdu, you get an error with **Retry**.
+
+**Translate** (**Translate to Urdu** on the English tab, **Translate to English** on the Urdu tab):
+
+- **What's translated:** the title, excerpt, SEO title, SEO description and body, together. The aim is natural, journalistic language that keeps names accurate.
+- **What's preserved:** headings, lists, quotes, bold and italic, and links (link addresses never change). Images, YouTube videos, X posts and dividers are not sent to the AI at all; they stay exactly where they were.
+- **Long articles** are translated section by section, with a progress bar and **Stop**.
+- **Existing content:** if the target language already has content, you're asked first (**Replace** or **Cancel**). Fields that are empty in the source language are left alone.
+- **Result:** the translation appears in the target tab as **unsaved changes**. Review it, then save.
+
+**Suggestions** (the small **✨ Suggest** links under fields):
+
+- **Headlines:** 5 options under the title.
+- **Excerpt:** written from the body, up to ~160 characters.
+- **SEO title and description:** in the SEO section, within the 60/160-character counters.
+- **Tags:** matched to your existing tags where possible. A new tag is only created if you click it and then save.
+- **Slug:** a short slug from the **English** title. It still goes through the normal slug checks.
+
+Suggestions use the language of the tab you're on (the slug always uses English). Nothing changes until you click a suggestion.
+
+**Edit selected text.** Select text in either editor and a small **AI** menu appears:
+
+- **Improve writing**
+- **Fix grammar & spelling**
+- **Make shorter**
+- **Make longer**
+- **More formal**
+- **Simpler language**
+
+The suggestion appears in a panel under the editor, in the same language as your selection. **Accept** replaces the selection as one undo step; **Discard** changes nothing.
+
+#### AI review safeguard
+
+Whenever AI-written or AI-translated content is inserted (including an applied headline, excerpt or SEO suggestion), this banner appears: **"Contains AI-generated content. Check names, facts, figures, dates and quotes before publishing."** The publish checklist also gets an extra item: **"I have reviewed the AI-generated content"**.
+
+You must tick that box before the article can be published. This is stored with the article (`ai_review_pending`), so it:
+
+- survives a page reload
+- also blocks **Publish** in the article list
+- stops a live article from being saved with unreviewed AI content
+
+Inserting more AI content later clears the tick again.
+
+**Errors** such as a rate limit, used-up quota, a safety block, a timeout or unusable output appear as a friendly message with **Retry**. A failed or stopped request never changes your article.
 
 ### Publishing
 
-- **Publish** needs: a category, a slug, and **at least one complete language** (title + body). If there's a cover image, it also needs alt text. The *Ready to publish?* checklist in the side panel shows what's missing, and a blocked publish opens the same checklist.
+- **Publish** needs: a category, a slug, and **at least one complete language** (title + body). If there's a cover image, it also needs alt text, and if AI content was inserted, the AI review box must be ticked. The *Ready to publish?* checklist in the side panel shows what's missing, and a blocked publish opens the same checklist.
 - After publishing, a **Published!** screen shows:
   - the public link for each completed language: `{NEXT_PUBLIC_SITE_URL}/en/{category}/{slug}` and `/ur/...`
   - **Copy link** buttons
@@ -248,12 +380,15 @@ src/
       admin/                protected admin: layout gate, dashboard, articles (list, new, [id], [id]/preview), categories
       login/                sign-in / sign-up
     api/auth/[...all]/      Better Auth handler
+    api/admin/ai/           admin-only AI endpoint (POST, streams NDJSON; Stop cancels the request)
     global-not-found.tsx    404 for URLs that match nothing (e.g. /fr)
     global-error.tsx
     globals.css             design tokens (colours, fonts) — change them here only
   components/
     admin/                  admin shell nav, row actions, publish dialogs, category manager
       editor/               Tiptap editor, toolbar, extensions, slug/tag/cover fields, upload client
+      ai/                   AI client (runAiTask, useAiTask), write panel, translate button, suggestions,
+                            selected-text menu, status card, error/Stop notices
     content/article-body.tsx   renders a stored article body (shared with Phase 4)
     layout/                 header, footer, logo, language switcher
     ui/                     shadcn components
@@ -265,6 +400,11 @@ src/
     seed.ts, seed-admin.ts, seed-demo.ts, load-env.ts
   i18n/                     config (locales, dir), en.ts, ur.ts dictionaries
   lib/
+    ai/                     reusable AI layer (Phase 6 builds on it):
+                              config.ts (provider/model from env), index.ts (generateText/streamText/generateJson:
+                              timeout, abort, rate limit, errors, logging), gemini.ts (server-only), mock.ts,
+                              prompts.ts (ALL prompt templates), markdown.ts (Markdown ⇄ Tiptap + placeholders),
+                              script.ts (Urdu/English script check), tasks.ts (endpoint schemas), errors.ts
     content/                document.ts (Tiptap allow-list + sanitizer), render.ts (JSON → safe HTML), urls.ts (URL allow-lists)
     articles/               rules.ts (publish checklist), slug.ts, validation.ts (Zod payload schema)
     uploads/file-type.ts    image magic-byte detection
@@ -275,6 +415,7 @@ src/
     article-actions.ts, category-actions.ts, uploads.ts   server actions (requireAdmin + Zod)
     public/articles.ts      PUBLIC reads: published only, "use cache" + tags (for Phase 4)
     revalidate.ts, storage.ts            cache invalidation; service-role Storage client
+    ai/tasks.ts, ai/tags.ts AI task handlers (draft, translate, suggest, edit, ping); tag matching
   proxy.ts                  optimistic /admin redirect (no session cookie → /login)
 drizzle/                    SQL migrations + snapshots
 scripts/                    setup-storage.ts, verify-content.ts
@@ -293,6 +434,7 @@ scripts/                    setup-storage.ts, verify-content.ts
   2. `admin/layout.tsx` calls `requireAdmin()` before rendering anything.
   3. Every admin page calls `requireAdmin()` again.
   4. Every admin server action (`src/server/*-actions.ts`, `uploads.ts`) and admin read (`src/server/articles.ts`, `categories.ts`) calls `requireAdmin()` itself. Server actions can be POSTed to *any* page URL, so the proxy and layout don't protect them.
+  5. The AI endpoint `POST /api/admin/ai` calls `requireAdmin()` first: logged-out → redirect to `/login`, readers → 404. Only then does it check that AI is configured, validate the input (Zod), and apply the rate limit.
 
   **Rule for later phases:** every admin server action and route handler must call `requireAdmin()` itself. Hiding a link is never enough.
 
@@ -301,6 +443,13 @@ scripts/                    setup-storage.ts, verify-content.ts
 - Bodies are stored as Tiptap JSON in `body_en` / `body_ur` (jsonb). `sanitizeDoc` (`src/lib/content/document.ts`) is the single allow-list of nodes and marks: paragraph, H2/H3, lists, quote, divider, image, YouTube, X post, hard break; bold, italic, underline, strike, link. It runs **on every save** and **again at render time**.
 - `renderDocToHtml` (`src/lib/content/render.ts`) escapes all text and attributes, re-checks every link and image URL, and outputs YouTube only as a `youtube-nocookie.com` iframe. It never passes through raw HTML from the database. Phase 4 public pages use the same renderer through `<ArticleBody />`.
 - Data access is split: `src/server/public/*` only ever returns `PUBLISHED` rows and is safe for public pages. Admin reads and all mutations are separate and guarded.
+- **AI output is untrusted, exactly like pasted content.**
+  - The model writes a restricted Markdown subset.
+  - On the server, `markdownToDoc` strips raw HTML and script tags and drops images.
+  - It then converts the result and runs the same `sanitizeDoc` allow-list, so `javascript:` links, unknown nodes, images and embeds can't come from the AI.
+  - Existing images and embeds survive translation and edits as `[[KT_BLOCK_n]]` placeholders. They are restored only from the original document.
+  - Urdu output is checked to be Urdu script.
+  - Structured output (titles, tags and so on) is validated with Zod and trimmed to field limits.
 
 ### Next.js 16 Cache Components
 
@@ -342,7 +491,7 @@ Integrity rules:
 
 1. **Foundation** (done): setup, schema, auth, design system, layout shell
 2. **Admin core** (done): Tiptap editor, articles, categories, image uploads (Supabase Storage), publish + share screen, preview
-3. **Admin AI:** prompt-to-draft, English→Urdu translation, headline/excerpt/SEO suggestions (Gemini). Gated by `features.aiEnabled`
+3. **Admin AI** (done): prompt-to-draft, English ⇄ Urdu translation, headline/excerpt/SEO/tag/slug suggestions, selected-text edits, AI review safeguard (Gemini, with a mock mode for development). Gated by `features.aiEnabled`
 4. **Public site:** homepage, category and article pages from the database, Urdu RTL article layout, "coming soon" badges for missing translations
 5. **Reader accounts:** profiles, bookmarks, comments with moderation
 6. **Reader AI:** summaries (cached in `ai_summaries`), "ask this article" chat, text-to-speech
@@ -360,3 +509,8 @@ Integrity rules:
 - **"Couldn't start the upload. Check that the article-images bucket exists."** Run `npm run storage:setup`.
 - **Uploaded images don't display (`next/image` error about an unconfigured host).** Restart the dev server or rebuild after setting `NEXT_PUBLIC_SUPABASE_URL`, because `next.config.ts` reads it at startup.
 - **Saving says "Unsupported content was removed".** Pasted content contained something the editor doesn't support (see *Article content and safety*). Check the article, then save again.
+- **AI buttons say "Coming soon".** No usable AI provider: set `GEMINI_API_KEY`, or `AI_PROVIDER=mock` in development, then restart. The dashboard's AI status card shows the exact reason. `AI_PROVIDER=mock` never works in a production build.
+- **"The AI provider rejected the configuration".** The key is wrong or revoked, or `GEMINI_MODEL` names a model that doesn't exist or isn't available to your key. Use **Test connection** on the dashboard after fixing it.
+- **"The AI quota for this API key is used up" / "Too many AI requests".** Google's limits or this app's per-admin limit (`AI_RATE_LIMIT_PER_MINUTE`, default 30/min) were hit. Wait and press **Retry**; your article is unchanged.
+- **"The AI didn't answer in Urdu script".** The model replied in Hindi or Roman Urdu. Press **Retry**; nothing was inserted.
+- **Local testing with PGlite: `unnamed prepared statement does not exist`.** PGlite is a single Postgres backend and can't run queries from several connections at once. Set `DATABASE_POOL_MAX=1` for the dev server. Real Postgres/Supabase doesn't need this.
