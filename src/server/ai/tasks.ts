@@ -4,12 +4,14 @@ import { z } from "zod";
 
 import { generateJson, generateText, getAiProvider, streamText } from "@/lib/ai";
 import { AiError } from "@/lib/ai/errors";
-import { markdownToDoc } from "@/lib/ai/markdown";
-import { prompts } from "@/lib/ai/prompts";
+import { docToMarkdown, markdownToDoc, placeholder, placeholdersIn, splitMarkdown } from "@/lib/ai/markdown";
+import { LANGUAGE_NAME, prompts } from "@/lib/ai/prompts";
 import { isExpectedScript, WRONG_SCRIPT_MESSAGE } from "@/lib/ai/script";
-import type { AiEvent, AiResults, ParsedAiTask } from "@/lib/ai/tasks";
+import type { AiEvent, AiResults, ParsedAiTask, TranslatableField } from "@/lib/ai/tasks";
 import { LIMITS } from "@/lib/articles/rules";
+import { type ArticleDoc, sanitizeDoc } from "@/lib/content/document";
 
+import { imagePrefix } from "../storage";
 import { matchTags } from "./tags";
 
 /**
@@ -88,4 +90,78 @@ export const handlers: Handlers = {
       warnings,
     };
   },
+
+  async translate(input, ctx) {
+    const { from, to } = input;
+    const prefix = imagePrefix();
+    const source = sanitizeDoc(input.body, { imagePrefix: prefix }).doc;
+    const { markdown, blocks } = docToMarkdown(source);
+    const chunks = markdown.trim() ? splitMarkdown(markdown) : [];
+    const fieldEntries = Object.entries(input.fields).filter(([, value]) => value.trim()) as [TranslatableField, string][];
+    if (!chunks.length && !fieldEntries.length) {
+      throw new AiError("bad_request", `There's nothing in ${LANGUAGE_NAME[from]} to translate yet.`);
+    }
+
+    const total = chunks.length + (fieldEntries.length ? 1 : 0);
+    let done = 0;
+    ctx.emit({ type: "progress", done, total });
+    const wrongScript = () => new AiError("invalid_output", WRONG_SCRIPT_MESSAGE[to]);
+
+    // Title, excerpt and SEO fields together, as validated JSON with the same keys.
+    const fields: Partial<Record<TranslatableField, string>> = {};
+    if (fieldEntries.length) {
+      const schema = z.object(Object.fromEntries(fieldEntries.map(([key]) => [key, z.string().max(2000)])));
+      const { timeoutMs, ...request } = prompts.translateFields({ fields: Object.fromEntries(fieldEntries), from, to });
+      const translated = (await generateJson(request, schema, call(ctx, timeoutMs))) as Record<string, string>;
+      for (const [key] of fieldEntries) fields[key] = cleanLine(translated[key] ?? "", FIELD_LIMITS[key]);
+      if (!isExpectedScript(Object.values(fields).join(" "), to)) throw wrongScript();
+      ctx.emit({ type: "progress", done: ++done, total });
+    }
+
+    // Body, section by section, so long articles stay within output limits.
+    const warnings: string[] = [];
+    let missing = 0;
+    const parts: string[] = [];
+    for (const [index, chunk] of chunks.entries()) {
+      const { timeoutMs, ...request } = prompts.translateChunk({ markdown: chunk, from, to, part: index + 1, parts: chunks.length });
+      const result = await generateText(request, call(ctx, timeoutMs));
+      if (result.truncated) throw new AiError("invalid_output", "The translation was cut off. Try translating a shorter article, or split it.");
+      let translated = result.text;
+      if (!isExpectedScript(translated, to)) throw wrongScript();
+      // Every image/embed placeholder must come back: re-add lost ones at the end of their part.
+      const returned = new Set(placeholdersIn(translated));
+      for (const id of placeholdersIn(chunk)) {
+        if (!returned.has(id)) {
+          translated += `\n\n${placeholder(Number(id))}`;
+          missing++;
+        }
+      }
+      parts.push(translated);
+      ctx.emit({ type: "progress", done: ++done, total });
+    }
+    if (missing) {
+      warnings.push(
+        missing === 1
+          ? "1 image or embed was moved to the end of its section. Check the placement."
+          : `${missing} images or embeds were moved to the end of their sections. Check the placement.`,
+      );
+    }
+
+    let body: ArticleDoc | null = null;
+    let removed: string[] = [];
+    if (parts.length) {
+      const converted = markdownToDoc(parts.join("\n\n"), { source: "ai", blocks, imagePrefix: prefix });
+      if (!converted.doc) throw new AiError("invalid_output");
+      body = converted.doc;
+      removed = converted.removed;
+    }
+    return { fields, body, removed, warnings };
+  },
+};
+
+const FIELD_LIMITS: Record<TranslatableField, number> = {
+  title: LIMITS.title,
+  excerpt: LIMITS.excerpt,
+  seoTitle: LIMITS.seoTitle,
+  seoDescription: LIMITS.seoDescription,
 };

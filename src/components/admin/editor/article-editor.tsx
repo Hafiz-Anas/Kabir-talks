@@ -6,7 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 
+import { TranslateButton } from "@/components/admin/ai/translate-button";
 import { type DraftApplyMode, WritePanel } from "@/components/admin/ai/write-panel";
+import type { AiResults, TranslatableField } from "@/lib/ai/tasks";
 import { DeleteArticleDialog } from "@/components/admin/article-row-actions";
 import { Checklist, PublishBlockedDialog } from "@/components/admin/publish-dialogs";
 import { useShowPublished } from "@/components/admin/publish-success-provider";
@@ -363,6 +365,56 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
   const stateEn = localeState({ title: form.titleEn, body: readiness.en.body, excerpt: form.excerptEn });
   const stateUr = localeState({ title: form.titleUr, body: readiness.ur.body, excerpt: form.excerptUr });
 
+  const localeFields = (locale: Locale) =>
+    ({
+      title: form[locale === "en" ? "titleEn" : "titleUr"],
+      excerpt: form[locale === "en" ? "excerptEn" : "excerptUr"],
+      seoTitle: form[locale === "en" ? "seoTitleEn" : "seoTitleUr"],
+      seoDescription: form[locale === "en" ? "seoDescriptionEn" : "seoDescriptionUr"],
+    }) satisfies Record<TranslatableField, string>;
+  const hasContent = (locale: Locale) =>
+    !isDocEmpty(readiness[locale].body) || Object.values(localeFields(locale)).some((value) => value.trim());
+
+  const applyTranslation = (to: Locale, result: AiResults["translate"]) => {
+    const keys: Record<TranslatableField, keyof Form> = {
+      title: to === "en" ? "titleEn" : "titleUr",
+      excerpt: to === "en" ? "excerptEn" : "excerptUr",
+      seoTitle: to === "en" ? "seoTitleEn" : "seoTitleUr",
+      seoDescription: to === "en" ? "seoDescriptionEn" : "seoDescriptionUr",
+    };
+    setForm((prev) => {
+      const next = { ...prev };
+      for (const [field, value] of Object.entries(result.fields) as [TranslatableField, string][]) {
+        (next as Record<string, unknown>)[keys[field]] = value;
+      }
+      if (to === "en" && result.fields.title && !prev.slugTouched && !publishedSlug) next.slug = slugify(result.fields.title);
+      return next;
+    });
+    if (result.body) applyAiBody(to, result.body, "replace");
+    else {
+      setTab(to);
+      markAiContent();
+    }
+    const extra = [...result.warnings, ...(result.removed.length ? [`Removed: ${result.removed.join("; ")}.`] : [])];
+    setNotice(`Translated into ${to === "en" ? "English" : "Urdu"}. Review it, then save.${extra.length ? ` ${extra.join(" ")}` : ""}`);
+  };
+
+  const translateControl = (from: Locale, to: Locale) =>
+    aiEnabled ? (
+      <TranslateButton
+        from={from}
+        to={to}
+        sourceHasContent={hasContent(from)}
+        targetHasContent={hasContent(to)}
+        getSource={() => ({ ...localeFields(from), body: readiness[from].body ?? null })}
+        onApply={(result) => applyTranslation(to, result)}
+      />
+    ) : (
+      <div className="flex justify-end" dir="ltr" lang="en">
+        <AiPlaceholder icon={Languages} label={`Translate to ${to === "en" ? "English" : "Urdu"}`} />
+      </div>
+    );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -383,7 +435,6 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
           ) : (
             <AiPlaceholder icon={Sparkles} label="AI assist" />
           )}
-          {!aiEnabled && <AiPlaceholder icon={Languages} label="Translate to Urdu" />}
         </div>
       </div>
 
@@ -432,6 +483,7 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
 
           {/* forceMount keeps both editors alive (undo history, cursor) when switching tabs. */}
           <TabsContent value="en" forceMount className="space-y-4 data-[state=inactive]:hidden">
+            {translateControl("en", "ur")}
             <Field label="Title" error={errors.titleEn} count={[form.titleEn.length, LIMITS.title]}>
               {(fieldId) => (
                 <Input
@@ -460,6 +512,7 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
           </TabsContent>
 
           <TabsContent value="ur" forceMount lang="ur" dir="rtl" className="space-y-4 data-[state=inactive]:hidden">
+            {translateControl("ur", "en")}
             <Field label="عنوان" error={errors.titleUr} count={[form.titleUr.length, LIMITS.title]}>
               {(fieldId) => (
                 <Input

@@ -160,8 +160,9 @@ const firstSentence = (text: string, max: number) => {
 type Any = Record<string, unknown>;
 const str = (value: unknown) => (typeof value === "string" ? value : "");
 
+/** All input strings, un-escaped, so markers inside article Markdown (where "[" becomes "\[") still count. */
 function strings(value: unknown): string[] {
-  if (typeof value === "string") return [value];
+  if (typeof value === "string") return [value.replace(/\\(.)/g, "$1")];
   if (Array.isArray(value)) return value.flatMap(strings);
   if (value && typeof value === "object") return Object.values(value).flatMap(strings);
   return [];

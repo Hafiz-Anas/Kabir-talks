@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { LIMITS } from "@/lib/articles/rules";
 import type { ArticleDoc } from "@/lib/content/document";
 
 import type { AiErrorCode } from "./errors";
@@ -26,7 +27,24 @@ export const aiTaskSchema = z.discriminatedUnion("task", [
     length: z.enum(Object.keys(DRAFT_LENGTHS) as [keyof typeof DRAFT_LENGTHS, ...(keyof typeof DRAFT_LENGTHS)[]]),
     tone: z.enum(Object.keys(DRAFT_TONES) as [keyof typeof DRAFT_TONES, ...(keyof typeof DRAFT_TONES)[]]),
   }),
+  z
+    .object({
+      task: z.literal("translate"),
+      from: locale,
+      to: locale,
+      fields: z.object({
+        title: z.string().max(LIMITS.title).default(""),
+        excerpt: z.string().max(LIMITS.excerpt).default(""),
+        seoTitle: z.string().max(LIMITS.seoTitle).default(""),
+        seoDescription: z.string().max(LIMITS.seoDescription).default(""),
+      }),
+      /** Source body (Tiptap JSON); re-sanitized on the server. */
+      body: z.unknown().nullable().default(null),
+    })
+    .refine((input) => input.from !== input.to, "Choose two different languages"),
 ]);
+
+export type TranslatableField = "title" | "excerpt" | "seoTitle" | "seoDescription";
 
 export type AiTaskInput = z.input<typeof aiTaskSchema>;
 export type AiTaskName = AiTaskInput["task"];
@@ -46,6 +64,14 @@ export type AiResults = {
     excerpt: string;
     tags: TagSuggestions;
     /** What the sanitizer removed from the model output. */
+    removed: string[];
+    warnings: string[];
+  };
+  translate: {
+    /** Only fields whose source had text; others are absent (left untouched). */
+    fields: Partial<Record<TranslatableField, string>>;
+    /** Translated body, or null when the source body was empty (left untouched). */
+    body: ArticleDoc | null;
     removed: string[];
     warnings: string[];
   };
