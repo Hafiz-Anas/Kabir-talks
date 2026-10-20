@@ -7,6 +7,7 @@ import { env } from "@/lib/env";
 import { AI_CALLS_PER_MINUTE, aiStatus } from "./config";
 import { AiError } from "./errors";
 import { createGeminiProvider } from "./gemini";
+import { parseJsonOutput } from "./json";
 import { createMockProvider } from "./mock";
 import { createRateLimiter } from "./rate-limit";
 import type { AiProvider, AiRequest, AiTextResult } from "./types";
@@ -124,17 +125,4 @@ export async function generateJson<T>(request: Request, schema: z.ZodType<T>, op
   delete jsonSchema.$schema;
   const { text } = await generateText({ ...request, jsonSchema }, options);
   return parseJsonOutput(text, schema);
-}
-
-export function parseJsonOutput<T>(text: string, schema: z.ZodType<T>): T {
-  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  let data: unknown;
-  try {
-    data = JSON.parse(cleaned);
-  } catch {
-    throw new AiError("invalid_output");
-  }
-  const parsed = schema.safeParse(data);
-  if (!parsed.success) throw new AiError("invalid_output");
-  return parsed.data;
 }

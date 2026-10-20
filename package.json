@@ -15,7 +15,8 @@
     "seed:admin": "tsx src/db/seed-admin.ts",
     "seed:demo": "tsx src/db/seed-demo.ts",
     "storage:setup": "tsx scripts/setup-storage.ts",
-    "verify:content": "tsx scripts/verify-content.ts"
+    "verify:content": "tsx scripts/verify-content.ts",
+    "verify:ai": "tsx scripts/verify-ai.ts"
   },
   "dependencies": {
     "@google/genai": "2.27.0",

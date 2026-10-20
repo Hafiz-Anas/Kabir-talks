@@ -63,8 +63,8 @@ export function mockTranslate(markdown: string, to: Locale): string {
       if (to === "ur" && latin) return UR_WORDS[hash(word.toLowerCase()) % UR_WORDS.length];
       if (to === "en" && !latin) return EN_WORDS[hash(word) % EN_WORDS.length];
       return word;
-    }),
-  ).replace(/\.(\s|$)/g, to === "ur" ? "۔$1" : ".$1");
+    }).replace(to === "ur" ? /\.(?=\s|$)/g : /۔(?=\s|$)/g, to === "ur" ? "۔" : "."),
+  );
 }
 
 const EDIT_PREFIX: Record<string, Record<Locale, string>> = {
