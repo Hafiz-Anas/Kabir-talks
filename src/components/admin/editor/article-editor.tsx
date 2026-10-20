@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 
+import { type DraftApplyMode, WritePanel } from "@/components/admin/ai/write-panel";
 import { DeleteArticleDialog } from "@/components/admin/article-row-actions";
 import { Checklist, PublishBlockedDialog } from "@/components/admin/publish-dialogs";
 import { useShowPublished } from "@/components/admin/publish-success-provider";
@@ -39,7 +40,7 @@ import {
 } from "@/lib/articles/rules";
 import { slugify } from "@/lib/articles/slug";
 import type { ArticlePayload, FieldErrors } from "@/lib/articles/validation";
-import { type ArticleDoc, sanitizeDoc } from "@/lib/content/document";
+import { type ArticleDoc, isDocEmpty, sanitizeDoc } from "@/lib/content/document";
 import { cn } from "@/lib/utils";
 import {
   archiveArticle,
@@ -90,12 +91,20 @@ type Props = {
   uploadsEnabled: boolean;
   imagePrefix: string | null;
   siteUrl: string;
+  /** From features.aiEnabled (server). When false, AI buttons show "Coming soon". */
+  aiEnabled: boolean;
 };
+
+type Locale = "en" | "ur";
+const FIELD_KEYS = {
+  title: { en: "titleEn", ur: "titleUr" },
+  excerpt: { en: "excerptEn", ur: "excerptUr" },
+} as const;
 
 const selectClass =
   "h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&>option]:bg-obsidian";
 
-export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled, imagePrefix, siteUrl }: Props) {
+export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled, imagePrefix, siteUrl, aiEnabled }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<Form>(() => ({
     ...initial,
@@ -136,6 +145,48 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
   const onBodyUr = useCallback((doc: JSONContent) => update("bodyUr", doc), [update]);
   const onReadyEn = useCallback((editor: Editor) => (editors.current.en = editor), []);
   const onReadyUr = useCallback((editor: Editor) => (editors.current.ur = editor), []);
+
+  // ── AI ──────────────────────────────────────────────────────────────────
+  const [writeOpen, setWriteOpen] = useState(false);
+  /** Set whenever AI-written or AI-translated text enters the article (review safeguard). */
+  const [, setAiInserted] = useState(false);
+  const markAiContent = useCallback(() => setAiInserted(true), []);
+
+  /** Sets a title/excerpt from AI; an English title also drives the auto-slug, like typing does. */
+  const setAiField = useCallback(
+    (locale: Locale, field: "title" | "excerpt", value: string) => {
+      const key = FIELD_KEYS[field][locale];
+      setForm((prev) => ({
+        ...prev,
+        [key]: value.slice(0, field === "title" ? LIMITS.title : LIMITS.excerpt),
+        ...(key === "titleEn" && !prev.slugTouched && !publishedSlug ? { slug: slugify(value) } : {}),
+      }));
+      markAiContent();
+    },
+    [publishedSlug, markAiContent],
+  );
+
+  /** Puts AI content into a language's editor as ONE transaction, so a single Ctrl+Z undoes it. */
+  const applyAiBody = useCallback(
+    (locale: Locale, doc: ArticleDoc, mode: DraftApplyMode) => {
+      const editor = editors.current[locale];
+      if (!editor) return;
+      setTab(locale);
+      if (mode === "append") editor.chain().insertContentAt(editor.state.doc.content.size, doc.content).run();
+      else editor.chain().setContent(doc).run();
+      requestAnimationFrame(() => editor.commands.focus("end"));
+      markAiContent();
+    },
+    [markAiContent],
+  );
+
+  const addTag = useCallback((tag: TagValue) => {
+    setForm((prev) => {
+      const slug = slugify(tag.nameEn, 60);
+      if (prev.tags.length >= LIMITS.tags || prev.tags.some((t) => slugify(t.nameEn, 60) === slug)) return prev;
+      return { ...prev, tags: [...prev.tags, tag] };
+    });
+  }, []);
 
   const toPayload = useCallback(
     (source: Form): ArticlePayload => ({
@@ -324,10 +375,37 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
         <StatusBadge status={status} />
         <SaveStatus saving={saving} dirty={dirty} saved={Boolean(id)} />
         <div className="ms-auto flex flex-wrap items-center gap-2">
-          <AiPlaceholder icon={Sparkles} label="AI assist" />
-          <AiPlaceholder icon={Languages} label="Translate to Urdu" />
+          {aiEnabled ? (
+            <Button type="button" variant="outline" size="sm" className="gap-2 bg-transparent" onClick={() => setWriteOpen(true)}>
+              <Sparkles aria-hidden className="text-gold" />
+              AI assist
+            </Button>
+          ) : (
+            <AiPlaceholder icon={Sparkles} label="AI assist" />
+          )}
+          {!aiEnabled && <AiPlaceholder icon={Languages} label="Translate to Urdu" />}
         </div>
       </div>
+
+      {aiEnabled && (
+        <WritePanel
+          open={writeOpen}
+          onOpenChange={setWriteOpen}
+          activeLocale={tab}
+          targets={{
+            en: { bodyEmpty: isDocEmpty(readiness.en.body), title: form.titleEn, excerpt: form.excerptEn },
+            ur: { bodyEmpty: isDocEmpty(readiness.ur.body), title: form.titleUr, excerpt: form.excerptUr },
+          }}
+          chosenTags={form.tags}
+          onApply={({ locale, mode, doc, title, excerpt }) => {
+            applyAiBody(locale, doc, mode);
+            if (title) setAiField(locale, "title", title);
+            if (excerpt) setAiField(locale, "excerpt", excerpt);
+          }}
+          onSetField={setAiField}
+          onAddTag={addTag}
+        />
+      )}
 
       {formError && (
         <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">

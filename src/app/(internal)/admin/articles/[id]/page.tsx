@@ -58,6 +58,7 @@ async function EditArticle({ params }: { params: PageProps<"/admin/articles/[id]
       uploadsEnabled={features.storageEnabled}
       imagePrefix={imagePrefix()}
       siteUrl={env.NEXT_PUBLIC_SITE_URL}
+      aiEnabled={features.aiEnabled}
     />
   );
 }
