@@ -58,6 +58,7 @@ async function NewArticle() {
         seoTitleUr: "",
         seoDescriptionEn: "",
         seoDescriptionUr: "",
+        aiReviewPending: false,
       }}
       categories={options.categories}
       tagOptions={options.tags}

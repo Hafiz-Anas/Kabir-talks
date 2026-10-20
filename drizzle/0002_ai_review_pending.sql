@@ -1,0 +1,1 @@
+ALTER TABLE "articles" ADD COLUMN "ai_review_pending" boolean DEFAULT false NOT NULL;

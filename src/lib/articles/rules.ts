@@ -32,6 +32,12 @@ export type ReadinessInput = {
   ur: LocaleContent;
   coverImageUrl?: string | null;
   coverImageAlt?: string | null;
+  /**
+   * AI review safeguard (Phase 3): when AI-generated or AI-translated content
+   * is in the article, the admin must confirm they reviewed it. On the server
+   * this comes from articles.ai_review_pending (used = pending, reviewed = false).
+   */
+  ai?: { used: boolean; reviewed: boolean };
 };
 
 export type ChecklistItem = { key: string; label: string; done: boolean };
@@ -60,8 +66,13 @@ export function publishChecklist(input: ReadinessInput): ChecklistItem[] {
   if (input.coverImageUrl) {
     items.push({ key: "coverAlt", label: "Add alt text for the cover image", done: Boolean(input.coverImageAlt?.trim()) });
   }
+  if (input.ai?.used) {
+    items.push({ key: AI_REVIEW_KEY, label: "I have reviewed the AI-generated content", done: input.ai.reviewed });
+  }
   return items;
 }
+
+export const AI_REVIEW_KEY = "aiReview";
 
 export function missingForPublish(input: ReadinessInput): ChecklistItem[] {
   return publishChecklist(input).filter((item) => !item.done);

@@ -132,11 +132,12 @@ export async function saveArticle(input: unknown): Promise<SaveArticleResult> {
       ur: { title: data.titleUr, body: ur.doc },
       coverImageUrl,
       coverImageAlt: data.coverImageAlt,
+      ai: { used: data.aiReviewPending, reviewed: false },
     });
     if (missing.length) {
       return {
         ok: false,
-        error: "This article is live, so it must stay complete. Fix the items below or unpublish it first.",
+        error: "This article is live, so it must stay complete (and any AI content reviewed). Fix the items below or unpublish it first.",
         missing,
       };
     }
@@ -166,6 +167,7 @@ export async function saveArticle(input: unknown): Promise<SaveArticleResult> {
     seoTitleUr: data.seoTitleUr,
     seoDescriptionEn: data.seoDescriptionEn,
     seoDescriptionUr: data.seoDescriptionUr,
+    aiReviewPending: data.aiReviewPending,
     updatedAt: new Date(),
   };
 
@@ -282,6 +284,8 @@ export async function publishArticle(input: { id: string; updatePublishedAt?: bo
     ur: { title: article.titleUr, body: article.bodyUr as ArticleDoc | null },
     coverImageUrl: article.coverImageUrl,
     coverImageAlt: article.coverImageAlt,
+    // Never publish AI content the admin hasn't confirmed reviewing (stored, so the list's Publish respects it too).
+    ai: { used: article.aiReviewPending, reviewed: false },
   };
   const missing = missingForPublish(readiness);
   if (missing.length) return { ok: false, error: "This article isn't ready to publish yet.", missing };

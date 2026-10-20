@@ -1,7 +1,7 @@
 "use client";
 
 import type { Editor, JSONContent } from "@tiptap/react";
-import { ArrowLeft, ChevronDown, Eye, Languages, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ChevronDown, Eye, Languages, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
@@ -33,6 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  AI_REVIEW_KEY,
   type ArticleStatus,
   type ChecklistItem,
   LIMITS,
@@ -79,12 +80,16 @@ export type EditorInitial = {
   seoTitleUr: string;
   seoDescriptionEn: string;
   seoDescriptionUr: string;
+  /** Saved AI content that still needs the admin's review (articles.ai_review_pending). */
+  aiReviewPending: boolean;
 };
 
-type Form = Omit<EditorInitial, "id" | "status" | "publishedAt" | "bodyEn" | "bodyUr"> & {
+type Form = Omit<EditorInitial, "id" | "status" | "publishedAt" | "bodyEn" | "bodyUr" | "aiReviewPending"> & {
   bodyEn: JSONContent | null;
   bodyUr: JSONContent | null;
   slugTouched: boolean;
+  /** AI review safeguard: `used` once AI content is inserted; `reviewed` when the admin ticks the checkbox. */
+  ai: { used: boolean; reviewed: boolean };
 };
 
 type Props = {
@@ -109,10 +114,10 @@ const selectClass =
 
 export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled, imagePrefix, siteUrl, aiEnabled }: Props) {
   const router = useRouter();
-  const [form, setForm] = useState<Form>(() => ({
-    ...initial,
-    slugTouched: Boolean(initial.id),
-  }));
+  const [form, setForm] = useState<Form>(() => {
+    const { aiReviewPending, ...rest } = initial;
+    return { ...rest, slugTouched: Boolean(initial.id), ai: { used: aiReviewPending, reviewed: false } };
+  });
   const [id, setId] = useState(initial.id);
   const [status, setStatus] = useState<ArticleStatus>(initial.status);
   const [publishedAt, setPublishedAt] = useState<string | null>(initial.publishedAt);
@@ -151,9 +156,8 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
 
   // ── AI ──────────────────────────────────────────────────────────────────
   const [writeOpen, setWriteOpen] = useState(false);
-  /** Set whenever AI-written or AI-translated text enters the article (review safeguard). */
-  const [, setAiInserted] = useState(false);
-  const markAiContent = useCallback(() => setAiInserted(true), []);
+  /** Called whenever AI-written or AI-translated text enters the article: it needs (re-)review. */
+  const markAiContent = useCallback(() => setForm((prev) => ({ ...prev, ai: { used: true, reviewed: false } })), []);
 
   /** Sets a title/excerpt from AI; an English title also drives the auto-slug, like typing does. */
   const setAiField = useCallback(
@@ -215,6 +219,7 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
       seoTitleUr: source.seoTitleUr,
       seoDescriptionEn: source.seoDescriptionEn,
       seoDescriptionUr: source.seoDescriptionUr,
+      aiReviewPending: source.ai.used && !source.ai.reviewed,
     }),
     [id, imagePrefix],
   );
@@ -235,6 +240,7 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
       ur: { title: form.titleUr, body: payload.bodyUr as ArticleDoc | null },
       coverImageUrl: form.coverImageUrl,
       coverImageAlt: form.coverImageAlt,
+      ai: form.ai,
     };
   }, [form, toPayload]);
   const checklist = publishChecklist(readiness);
@@ -493,6 +499,15 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
           {notice}
         </p>
       )}
+      {form.ai.used && !form.ai.reviewed && (
+        <div role="note" data-testid="ai-review-banner" className="flex items-start gap-3 rounded-md border border-gold bg-gold/15 px-4 py-3 text-sm text-ivory">
+          <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-gold" />
+          <p>
+            <strong className="text-gold">Contains AI-generated content.</strong> Check names, facts, figures, dates and quotes
+            before publishing. Then tick “I have reviewed the AI-generated content” in the Publish panel.
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         {/* Main: language tabs */}
@@ -609,7 +624,21 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
             </div>
             <div className="space-y-2 pt-2">
               <p className="text-xs tracking-wide text-grey uppercase">Ready to publish?</p>
-              <Checklist items={checklist} />
+              <Checklist items={checklist.filter((item) => item.key !== AI_REVIEW_KEY)} />
+              {form.ai.used && (
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-1 accent-[var(--color-gold)]"
+                    checked={form.ai.reviewed}
+                    onChange={(e) => setForm((prev) => ({ ...prev, ai: { used: true, reviewed: e.target.checked } }))}
+                  />
+                  <span className={form.ai.reviewed ? "text-grey" : "text-ivory"}>
+                    I have reviewed the AI-generated content
+                    <span className="block text-xs text-grey-dim">Names, facts, figures, dates and quotes checked.</span>
+                  </span>
+                </label>
+              )}
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-2 border-t border-border pt-3 text-sm">
               {id && (

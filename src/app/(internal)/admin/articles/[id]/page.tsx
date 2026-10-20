@@ -52,6 +52,7 @@ async function EditArticle({ params }: { params: PageProps<"/admin/articles/[id]
         seoTitleUr: article.seoTitleUr ?? "",
         seoDescriptionEn: article.seoDescriptionEn ?? "",
         seoDescriptionUr: article.seoDescriptionUr ?? "",
+        aiReviewPending: article.aiReviewPending,
       }}
       categories={options.categories}
       tagOptions={options.tags}

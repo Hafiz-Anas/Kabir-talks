@@ -51,6 +51,8 @@ export const articlePayloadSchema = z.object({
   seoDescriptionUr: optionalText(LIMITS.seoDescription),
   /** Set after the admin confirms changing the slug of a published article. */
   confirmSlugChange: z.boolean().default(false),
+  /** AI content in the article that the admin hasn't ticked as reviewed yet (blocks publishing). */
+  aiReviewPending: z.boolean().default(false),
 });
 
 export type ArticlePayload = z.input<typeof articlePayloadSchema>;
