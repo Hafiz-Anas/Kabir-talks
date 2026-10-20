@@ -45,4 +45,4 @@ function resolve(): AiStatus {
 export const aiStatus: AiStatus = resolve();
 
 /** Per-admin cap on AI model calls per minute (in-memory; see src/lib/ai/rate-limit.ts). */
-export const AI_CALLS_PER_MINUTE = 30;
+export const AI_CALLS_PER_MINUTE = env.AI_RATE_LIMIT_PER_MINUTE ?? 30;

@@ -52,7 +52,9 @@ export function SelectionAi({
     const { from, to, $from, $to } = editor.state.selection;
     if (from === to) return;
     const slice = editor.state.doc.slice(from, to);
-    const selection = { type: "doc", content: slice.content.toJSON() as JSONContent[] };
+    const nodes = (slice.content.toJSON() ?? []) as JSONContent[];
+    // A selection inside one block slices to bare inline nodes: wrap them so it's a valid document.
+    const selection = { type: "doc", content: slice.content.firstChild?.isInline ? [{ type: "paragraph", content: nodes }] : nodes };
     // A selection inside one paragraph/heading is replaced inline, keeping the block around it.
     const inline = $from.sameParent($to) && $from.parent.isTextblock;
     setProblem(null);

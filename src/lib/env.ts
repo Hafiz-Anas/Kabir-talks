@@ -28,6 +28,11 @@ const serverSchema = z.object({
 
   // Database
   DATABASE_URL: postgresUrl,
+  // Optional pool size override (default: 1 in production, 5 in development).
+  DATABASE_POOL_MAX: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.coerce.number().int().min(1).max(50).optional(),
+  ),
   // Migrations only (drizzle.config.ts); the app itself never uses it.
   DIRECT_URL: z.preprocess((value) => (value === "" ? undefined : value), postgresUrl.optional()),
 
@@ -66,6 +71,11 @@ const serverSchema = z.object({
   AI_PROVIDER: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.enum(["gemini", "mock"]).optional(),
+  ),
+  // Per-admin cost guard: AI model calls allowed per minute (default 30).
+  AI_RATE_LIMIT_PER_MINUTE: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.coerce.number().int().min(1).max(10_000).optional(),
   ),
 
   // Newsletter email provider (optional, Phase 7)

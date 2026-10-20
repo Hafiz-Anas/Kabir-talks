@@ -22,7 +22,8 @@ const client =
   postgres(env.DATABASE_URL, {
     prepare: false,
     // Serverless functions should keep their pools tiny; the pooler multiplexes.
-    max: env.NODE_ENV === "production" ? 1 : 5,
+    // DATABASE_POOL_MAX overrides it, e.g. 1 against a single-backend stand-in like PGlite.
+    max: env.DATABASE_POOL_MAX ?? (env.NODE_ENV === "production" ? 1 : 5),
   });
 
 if (env.NODE_ENV !== "production") globalForDb.pgClient = client;
