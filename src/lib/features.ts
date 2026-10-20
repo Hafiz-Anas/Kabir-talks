@@ -1,3 +1,4 @@
+import { aiStatus } from "@/lib/ai/config";
 import { env } from "@/lib/env";
 
 /**
@@ -8,7 +9,8 @@ import { env } from "@/lib/env";
  * Server-only: pass the boolean down as a prop if a Client Component needs it.
  */
 export const features = {
-  aiEnabled: Boolean(env.GEMINI_API_KEY),
+  /** A real Gemini key, or AI_PROVIDER=mock in development only (src/lib/ai/config.ts). */
+  aiEnabled: aiStatus.mode !== "off",
   googleAuthEnabled: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
   newsletterEnabled: Boolean(env.RESEND_API_KEY),
   /** Image uploads to Supabase Storage (Phase 2). */

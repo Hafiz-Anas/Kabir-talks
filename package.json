@@ -18,8 +18,10 @@
     "verify:content": "tsx scripts/verify-content.ts"
   },
   "dependencies": {
+    "@google/genai": "2.27.0",
     "@supabase/storage-js": "2.118.0",
     "@tiptap/core": "3.32.0",
+    "@tiptap/extension-bubble-menu": "3.32.0",
     "@tiptap/extension-image": "3.32.0",
     "@tiptap/extension-youtube": "3.32.0",
     "@tiptap/extensions": "3.32.0",

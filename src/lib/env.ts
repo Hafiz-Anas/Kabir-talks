@@ -54,8 +54,19 @@ const serverSchema = z.object({
   ),
   SUPABASE_SERVICE_ROLE_KEY: optional,
 
-  // AI (optional, Phases 3 and 6)
+  // AI (optional, Phases 3 and 6). See src/lib/ai/config.ts for how these combine.
   GEMINI_API_KEY: optional,
+  GEMINI_MODEL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z
+      .string()
+      .regex(/^[a-z0-9][a-z0-9.\-]*$/, "must be a Gemini model code, e.g. gemini-3.8-flash")
+      .optional(),
+  ),
+  AI_PROVIDER: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.enum(["gemini", "mock"]).optional(),
+  ),
 
   // Newsletter email provider (optional, Phase 7)
   RESEND_API_KEY: optional,
