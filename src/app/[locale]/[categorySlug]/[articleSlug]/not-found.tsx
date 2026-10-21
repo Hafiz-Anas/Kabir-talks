@@ -56,7 +56,7 @@ async function Resolved({ locale }: { locale: Locale }) {
         <span className="block text-xs tracking-[0.12em] text-gold uppercase">
           {other === "en" ? article.categoryNameEn : article.categoryNameUr}
         </span>
-        <span className={`mt-2 block text-2xl text-ivory ${other === "ur" ? "font-urdu leading-loose" : "font-serif"}`}>
+        <span className={`mt-2 block text-2xl text-ivory ${other === "ur" ? "font-urdu" : "font-serif leading-snug"}`}>
           {content.title}
         </span>
         <span className="mt-2 block text-sm text-grey-dim">{formatPublicDate(article.publishedAt, other)}</span>
