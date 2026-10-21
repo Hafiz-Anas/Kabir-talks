@@ -26,6 +26,9 @@ export type TagData = { id: string; slug: string; nameEn: string; nameUr: string
 /** Page size for category, tag and search listings. */
 export const LISTING_PAGE_SIZE = 12;
 
+/** Cards per "Load more" step in the homepage Latest feed (also its first page). */
+export const FEED_PAGE_SIZE = 6;
+
 export function tagName(tag: Pick<TagData, "nameEn" | "nameUr">, locale: Locale) {
   return locale === "ur" && tag.nameUr ? tag.nameUr : tag.nameEn;
 }

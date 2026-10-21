@@ -56,7 +56,7 @@ function LocaleLink({
       aria-current={active ? "true" : undefined}
       className={cn(
         "rounded-sm px-2 py-1 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-        target === "ur" ? "font-urdu leading-loose" : "font-sans",
+        target === "ur" ? "font-urdu text-base" : "font-sans",
         active ? "text-gold" : "text-grey hover:text-ivory",
         // In the header on phones only the *other* language is shown, to save space.
         active && showActive === "sm" && "hidden sm:inline-block",

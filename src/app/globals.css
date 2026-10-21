@@ -283,3 +283,30 @@
     outline-offset: 2px;
   }
 }
+
+/*
+ * Urdu line height. Kept OUTSIDE @layer on purpose: Tailwind's text-* utilities
+ * set tight line heights for Latin text, and Nastaliq's tall, sloping glyphs
+ * collide at those values. Unlayered rules win over every layer, so all Urdu
+ * text keeps enough room whatever size class it uses.
+ */
+:lang(ur) :is(h1, h2, h3, h4) {
+  line-height: 1.85;
+}
+:lang(ur) :is(p, li, a, span, time, label, button, figcaption, blockquote) {
+  line-height: 2.1;
+}
+:lang(ur) [lang="en"],
+:lang(ur) [lang="en"] * {
+  line-height: inherit;
+}
+
+/* Mixed-direction text inside articles: keep links and emphasis as isolated runs. */
+.kt-prose :is(a, strong, em, u, s) {
+  unicode-bidi: isolate;
+}
+
+/* Comfortable English reading measure (~70 characters); Urdu is set larger and wider. */
+.kt-article-body:lang(en) {
+  max-width: 70ch;
+}
