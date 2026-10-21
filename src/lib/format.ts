@@ -27,3 +27,14 @@ export function formatDateTime(value: Date | string | null | undefined) {
 export function formatDate(value: Date | string | null | undefined) {
   return value ? dateOnly.format(new Date(value)) : "—";
 }
+
+const publicDate = {
+  en: new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: SITE_TIME_ZONE }),
+  // ur-PK gives Urdu month names with Western digits, e.g. "21 اکتوبر، 2026".
+  ur: new Intl.DateTimeFormat("ur-PK", { day: "numeric", month: "long", year: "numeric", timeZone: SITE_TIME_ZONE }),
+} as const;
+
+/** Reader-facing date in the page's language. Safe on server and client (fixed time zone). */
+export function formatPublicDate(value: Date | string, locale: "en" | "ur") {
+  return publicDate[locale].format(new Date(value));
+}

@@ -120,4 +120,24 @@ export function renderDocToHtml(input: unknown, options: SanitizeOptions): strin
   return doc ? renderBlocks(doc.content) : "";
 }
 
+/**
+ * Same as renderDocToHtml, split into two safe halves at a top-level block
+ * boundary: after the `paragraphs`-th top-level paragraph. Used to place an
+ * element (the inline ad slot) inside an article without touching its HTML.
+ * The second half is "" when the article is shorter than that.
+ */
+export function renderDocToHtmlParts(input: unknown, options: SanitizeOptions, paragraphs: number): [string, string] {
+  const { doc } = sanitizeDoc(input, options);
+  if (!doc) return ["", ""];
+  let seen = 0;
+  let split = doc.content.length;
+  for (const [index, node] of doc.content.entries()) {
+    if (node.type === "paragraph" && ++seen === paragraphs) {
+      split = index + 1;
+      break;
+    }
+  }
+  return [renderBlocks(doc.content.slice(0, split)), renderBlocks(doc.content.slice(split))];
+}
+
 export type { ArticleDoc };

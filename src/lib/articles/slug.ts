@@ -19,3 +19,13 @@ export function isValidSlug(value: string) {
 }
 
 export const SLUG_HELP = "Lowercase letters, numbers and single hyphens only (e.g. budget-2026-explained).";
+
+/**
+ * Category slugs that would clash with routes: /{locale}/search, /{locale}/tags/…,
+ * /{locale}/about, plus the locale codes and internal top-level paths.
+ */
+export const RESERVED_CATEGORY_SLUGS = ["en", "ur", "search", "tags", "about", "admin", "login", "api"] as const;
+
+export function isReservedCategorySlug(slug: string) {
+  return (RESERVED_CATEGORY_SLUGS as readonly string[]).includes(slug);
+}

@@ -13,6 +13,9 @@ export function categoryPath(locale: Locale, categorySlug: string) {
   return `/${locale}/${categorySlug}`;
 }
 
+/** Request header set by src/proxy.ts so the article not-found page knows which URL was asked for. */
+export const ARTICLE_PATH_HEADER = "x-kt-article-path";
+
 export function absoluteUrl(siteUrl: string, path: string) {
   return `${siteUrl.replace(/\/+$/, "")}${path}`;
 }

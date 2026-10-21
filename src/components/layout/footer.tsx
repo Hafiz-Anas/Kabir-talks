@@ -1,7 +1,10 @@
 import { cacheLife } from "next/cache";
+import Link from "next/link";
 
 import { ComingSoon } from "@/components/coming-soon";
 import type { Dictionary, Locale } from "@/i18n";
+import { categoryPath } from "@/lib/urls";
+import { listPublicCategories } from "@/server/public/articles";
 
 import { Logo } from "./logo";
 
@@ -14,20 +17,41 @@ async function CurrentYear() {
   return new Date().getFullYear();
 }
 
-export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
+const linkClass = "text-grey transition-colors hover:text-gold-soft focus-visible:text-gold-soft focus-visible:outline-none";
+
+export async function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
+  const categories = await listPublicCategories();
+
   return (
     <footer className="mt-auto border-t border-border bg-obsidian">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[2fr_1fr_1fr] lg:px-8">
-        <div className="space-y-4">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 md:grid-cols-[2fr_1fr_1fr_1fr] lg:px-8">
+        <div className="space-y-4 sm:col-span-2 md:col-span-1">
           <Logo href={`/${locale}`} />
           <p className="max-w-sm text-sm text-grey">{dict.site.tagline}</p>
         </div>
 
-        <nav aria-label={dict.footer.about} className="space-y-3 text-sm">
+        <nav aria-label={dict.footer.sections} className="space-y-3 text-sm">
+          <p className="text-ivory">{dict.footer.sections}</p>
           <ul className="space-y-3">
-            <li className="flex items-center gap-2 text-grey">
-              {dict.footer.about}
-              <ComingSoon label={dict.common.comingSoon} />
+            {categories.map((category) => (
+              <li key={category.id}>
+                <Link href={categoryPath(locale, category.slug)} className={linkClass}>
+                  {locale === "en" ? category.nameEn : category.nameUr}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav aria-label="Kabir Talks" className="space-y-3 text-sm">
+          <p className="text-ivory" lang="en" dir="ltr">
+            Kabir Talks
+          </p>
+          <ul className="space-y-3">
+            <li>
+              <Link href={`/${locale}/about`} className={linkClass}>
+                {dict.footer.about}
+              </Link>
             </li>
             <li className="flex items-center gap-2 text-grey">
               {dict.footer.contact}

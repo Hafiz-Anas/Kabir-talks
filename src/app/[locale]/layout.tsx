@@ -26,10 +26,8 @@ export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Pr
   return {
     metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
     title: { default: dict.site.name, template: `%s · ${dict.site.name}` },
-    description: dict.site.tagline,
-    alternates: {
-      languages: Object.fromEntries(locales.map((l) => [l, `/${l}`])),
-    },
+    description: dict.site.description,
+    // Each page sets its own canonical, hreflang, Open Graph and Twitter tags (src/lib/seo.ts).
   };
 }
 

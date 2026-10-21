@@ -1,52 +1,82 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ComingSoon } from "@/components/coming-soon";
-import { SectionHeading } from "@/components/section-heading";
-import { SkeletonCard } from "@/components/skeleton-card";
-import { getDictionary, isLocale } from "@/i18n";
-import { NAV_CATEGORIES } from "@/lib/navigation";
+import { ArticleListing } from "@/components/articles/article-listing";
+import { fill, getDictionary, isLocale } from "@/i18n";
+import { LISTING_PAGE_SIZE, parsePageParam } from "@/lib/articles/public";
+import { metaDescription, pageMetadata } from "@/lib/seo";
+import { categoryPath } from "@/lib/urls";
+import { countArticles, getPublicCategory, listArticleCards, listPublicCategories } from "@/server/public/articles";
 
 /**
- * Placeholder category page so header links and the language switcher can be
- * tested. Phase 4 replaces this with a database-driven listing.
+ * Section page: lead story, then a grid, paginated with ?page=N.
+ *
+ * Reading ?page makes this page render per request (the data itself is
+ * cached), and `instant = false` lets it block instead of streaming, so
+ * unknown sections and out-of-range pages return a real 404 status.
  */
-
-// Known slugs are prerendered; unknown ones may block while resolving to a 404.
-// Phase 4 should revisit this once the listing streams real data.
 export const instant = false;
 
-export function generateStaticParams() {
-  return NAV_CATEGORIES.map((category) => ({ categorySlug: category.slug }));
+export async function generateStaticParams() {
+  const categories = await listPublicCategories();
+  // Cache Components needs at least one param; the placeholder simply 404s.
+  return categories.length ? categories.map((category) => ({ categorySlug: category.slug })) : [{ categorySlug: "__none__" }];
 }
 
-async function resolve(params: PageProps<"/[locale]/[categorySlug]">["params"]) {
-  const { locale, categorySlug } = await params;
-  const category = NAV_CATEGORIES.find((c) => c.slug === categorySlug);
-  if (!isLocale(locale) || !category) notFound();
+async function resolve({ params, searchParams }: PageProps<"/[locale]/[categorySlug]">) {
+  const [{ locale, categorySlug }, query] = await Promise.all([params, searchParams]);
+  const page = parsePageParam(query.page);
+  if (!isLocale(locale) || page === null) notFound();
+  const category = await getPublicCategory(categorySlug);
+  if (!category) notFound();
+
+  const total = await countArticles({ locale, categorySlug });
+  const pages = Math.max(1, Math.ceil(total / LISTING_PAGE_SIZE));
+  if (page > pages) notFound();
+
+  return {
+    locale,
+    page,
+    pages,
+    category,
+    name: locale === "en" ? category.nameEn : category.nameUr,
+    description: (locale === "en" ? category.descriptionEn : category.descriptionUr) ?? null,
+  };
+}
+
+export async function generateMetadata(props: PageProps<"/[locale]/[categorySlug]">): Promise<Metadata> {
+  const { locale, page, category, name, description } = await resolve(props);
   const dict = getDictionary(locale);
-  return { dict, title: dict.nav[category.labelKey] };
+  const path = categoryPath(locale, category.slug) + (page > 1 ? `?page=${page}` : "");
+  return pageMetadata({
+    locale,
+    path,
+    title: page > 1 ? `${name} — ${fill(dict.listing.page, { page })}` : name,
+    description: metaDescription(description, dict.site.description),
+  });
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps<"/[locale]/[categorySlug]">): Promise<Metadata> {
-  const { title } = await resolve(params);
-  return { title };
-}
-
-export default async function CategoryPage({ params }: PageProps<"/[locale]/[categorySlug]">) {
-  const { dict, title } = await resolve(params);
+export default async function CategoryPage(props: PageProps<"/[locale]/[categorySlug]">) {
+  const { locale, page, pages, category, name, description } = await resolve(props);
+  const dict = getDictionary(locale);
+  const articles = await listArticleCards({
+    locale,
+    categorySlug: category.slug,
+    limit: LISTING_PAGE_SIZE,
+    offset: (page - 1) * LISTING_PAGE_SIZE,
+  });
 
   return (
-    <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-      <SectionHeading title={title} aside={<ComingSoon label={dict.common.comingSoon} />} />
-      <ComingSoon variant="panel" label={dict.common.comingSoon} description={dict.category.placeholder} />
-      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 3 }, (_, i) => (
-          <SkeletonCard key={i} className={i > 0 ? "hidden sm:block" : undefined} />
-        ))}
-      </div>
-    </div>
+    <ArticleListing
+      locale={locale}
+      dict={dict}
+      heading={name}
+      description={description}
+      articles={articles}
+      page={page}
+      pages={pages}
+      basePath={categoryPath(locale, category.slug)}
+      emptyText={dict.listing.emptyCategory}
+    />
   );
 }

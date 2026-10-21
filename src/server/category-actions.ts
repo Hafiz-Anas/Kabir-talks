@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { articles, categories } from "@/db/schema";
-import { SLUG_HELP, SLUG_PATTERN, slugify } from "@/lib/articles/slug";
+import { isReservedCategorySlug, RESERVED_CATEGORY_SLUGS, SLUG_HELP, SLUG_PATTERN, slugify } from "@/lib/articles/slug";
 import { requireAdmin } from "@/lib/auth-guards";
 
 import { revalidateCategories } from "./revalidate";
@@ -52,9 +52,13 @@ export async function saveCategory(input: CategoryInput): Promise<CategoryResult
   const slug = data.slug || slugify(data.nameEn, 80);
   if (!slug) return { ok: false, error: "Add a slug.", fieldErrors: { slug: SLUG_HELP } };
 
-  // Locale codes would collide with /en and /ur routes.
-  if (["en", "ur", "admin", "login", "api"].includes(slug)) {
-    return { ok: false, error: "That slug is reserved.", fieldErrors: { slug: "Reserved — choose another" } };
+  // Would collide with public routes (/en, /{locale}/search, /{locale}/tags, …).
+  if (isReservedCategorySlug(slug)) {
+    return {
+      ok: false,
+      error: "That slug is reserved.",
+      fieldErrors: { slug: `Reserved — these can't be used: ${RESERVED_CATEGORY_SLUGS.join(", ")}` },
+    };
   }
 
   const clash = await db
