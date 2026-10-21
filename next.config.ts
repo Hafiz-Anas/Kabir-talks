@@ -25,6 +25,8 @@ function storageImagePatterns(): NonNullable<NextConfig["images"]>["remotePatter
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // Loads its WebAssembly file from its own folder at runtime; don't bundle it.
+  serverExternalPackages: ["harfbuzzjs"],
   partialPrefetching: true,
   images: {
     remotePatterns: storageImagePatterns(),

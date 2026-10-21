@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/search">
     title: dict.search.title,
     description: dict.search.intro,
     noindex: true,
+    languages: null,
   });
 }
 

@@ -10,7 +10,14 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/about">)
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const dict = getDictionary(locale);
-  return pageMetadata({ locale, path: `/${locale}/about`, title: dict.about.title, description: dict.about.description });
+  return pageMetadata({
+    locale,
+    path: `/${locale}/about`,
+    // The title already names the site ("About Kabir Talks"), so skip the " · Kabir Talks" suffix.
+    title: dict.about.title,
+    absoluteTitle: true,
+    description: dict.about.description,
+  });
 }
 
 export default async function AboutPage({ params }: PageProps<"/[locale]/about">) {
