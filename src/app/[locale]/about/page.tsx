@@ -6,6 +6,9 @@ import { pageMetadata } from "@/lib/seo";
 
 /** About page. Copy lives in the i18n dictionaries (about.*) until there is a CMS page for it. */
 
+// Must stay fully static (cached reads only): this is where shared links land.
+export const ensureStatic = "navigation";
+
 export async function generateMetadata({ params }: PageProps<"/[locale]/about">): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();

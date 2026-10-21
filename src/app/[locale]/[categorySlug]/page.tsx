@@ -1,82 +1,24 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 
-import { ArticleListing } from "@/components/articles/article-listing";
-import { fill, getDictionary, isLocale } from "@/i18n";
-import { LISTING_PAGE_SIZE, parsePageParam } from "@/lib/articles/public";
-import { metaDescription, pageMetadata } from "@/lib/seo";
-import { categoryPath } from "@/lib/urls";
-import { countArticles, getPublicCategory, listArticleCards, listPublicCategories } from "@/server/public/articles";
+import { ListingPage, listingMetadata, listingSlugParams } from "@/server/public/listing-pages";
 
 /**
- * Section page: lead story, then a grid, paginated with ?page=N.
- *
- * Reading ?page makes this page render per request (the data itself is
- * cached), and `instant = false` lets it block instead of streaming, so
- * unknown sections and out-of-range pages return a real 404 status.
+ * Section page 1: lead story, then a grid. Later pages are ?page=N, which
+ * src/proxy.ts rewrites to ./p/[page]. Fully static from cached reads, so an
+ * unknown section renders to a real 404 (see src/server/public/listing-pages.tsx).
  */
-export const instant = false;
+export const ensureStatic = "navigation";
 
 export async function generateStaticParams() {
-  const categories = await listPublicCategories();
-  // Cache Components needs at least one param; the placeholder simply 404s.
-  return categories.length ? categories.map((category) => ({ categorySlug: category.slug })) : [{ categorySlug: "__none__" }];
+  return (await listingSlugParams("category")).map(({ slug }) => ({ categorySlug: slug }));
 }
 
-async function resolve({ params, searchParams }: PageProps<"/[locale]/[categorySlug]">) {
-  const [{ locale, categorySlug }, query] = await Promise.all([params, searchParams]);
-  const page = parsePageParam(query.page);
-  if (!isLocale(locale) || page === null) notFound();
-  const category = await getPublicCategory(categorySlug);
-  if (!category) notFound();
-
-  const total = await countArticles({ locale, categorySlug });
-  const pages = Math.max(1, Math.ceil(total / LISTING_PAGE_SIZE));
-  if (page > pages) notFound();
-
-  return {
-    locale,
-    page,
-    pages,
-    category,
-    name: locale === "en" ? category.nameEn : category.nameUr,
-    description: (locale === "en" ? category.descriptionEn : category.descriptionUr) ?? null,
-  };
+export async function generateMetadata({ params }: PageProps<"/[locale]/[categorySlug]">): Promise<Metadata> {
+  const { locale, categorySlug } = await params;
+  return listingMetadata("category", { locale, slug: categorySlug });
 }
 
-export async function generateMetadata(props: PageProps<"/[locale]/[categorySlug]">): Promise<Metadata> {
-  const { locale, page, category, name, description } = await resolve(props);
-  const dict = getDictionary(locale);
-  const path = categoryPath(locale, category.slug) + (page > 1 ? `?page=${page}` : "");
-  return pageMetadata({
-    locale,
-    path,
-    title: page > 1 ? `${name} — ${fill(dict.listing.page, { page })}` : name,
-    description: metaDescription(description, dict.site.description),
-  });
-}
-
-export default async function CategoryPage(props: PageProps<"/[locale]/[categorySlug]">) {
-  const { locale, page, pages, category, name, description } = await resolve(props);
-  const dict = getDictionary(locale);
-  const articles = await listArticleCards({
-    locale,
-    categorySlug: category.slug,
-    limit: LISTING_PAGE_SIZE,
-    offset: (page - 1) * LISTING_PAGE_SIZE,
-  });
-
-  return (
-    <ArticleListing
-      locale={locale}
-      dict={dict}
-      heading={name}
-      description={description}
-      articles={articles}
-      page={page}
-      pages={pages}
-      basePath={categoryPath(locale, category.slug)}
-      emptyText={dict.listing.emptyCategory}
-    />
-  );
+export default async function CategoryPage({ params }: PageProps<"/[locale]/[categorySlug]">) {
+  const { locale, categorySlug } = await params;
+  return <ListingPage kind="category" raw={{ locale, slug: categorySlug }} />;
 }

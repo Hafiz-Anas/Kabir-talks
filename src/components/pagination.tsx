@@ -1,5 +1,4 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
 
 import { type Dictionary, fill } from "@/i18n";
 
@@ -35,10 +34,10 @@ export function Pagination({
   return (
     <nav aria-label={labels.pagination} className="flex items-center justify-between gap-4 pt-4">
       {page > 1 ? (
-        <Link href={href(page - 1)} rel="prev" className={linkClass}>
+        <a href={href(page - 1)} rel="prev" className={linkClass}>
           <ChevronLeft aria-hidden className="size-4 rtl:rotate-180" />
           {labels.previous}
-        </Link>
+        </a>
       ) : (
         <span />
       )}
@@ -46,10 +45,10 @@ export function Pagination({
         {fill(labels.pageOf, { page, pages })}
       </p>
       {page < pages ? (
-        <Link href={href(page + 1)} rel="next" className={linkClass}>
+        <a href={href(page + 1)} rel="next" className={linkClass}>
           {labels.next}
           <ChevronRight aria-hidden className="size-4 rtl:rotate-180" />
-        </Link>
+        </a>
       ) : (
         <span />
       )}

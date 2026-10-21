@@ -13,8 +13,20 @@ export function categoryPath(locale: Locale, categorySlug: string) {
   return `/${locale}/${categorySlug}`;
 }
 
-/** Request header set by src/proxy.ts so the article not-found page knows which URL was asked for. */
-export const ARTICLE_PATH_HEADER = "x-kt-article-path";
+export function tagPath(locale: Locale, tagSlug: string) {
+  return `/${locale}/tags/${tagSlug}`;
+}
+
+/** Public URL of a listing page: page 1 is the bare path, later pages add ?page=N. */
+export function listingPagePath(basePath: string, page: number) {
+  return page > 1 ? `${basePath}?page=${page}` : basePath;
+}
+
+/**
+ * Internal static route that serves ?page=N (src/proxy.ts rewrites to it):
+ * /en/sports?page=2 → /en/sports/p/2. Only the ?page form is ever linked.
+ */
+export const PAGED_SEGMENT = "p";
 
 export function absoluteUrl(siteUrl: string, path: string) {
   return `${siteUrl.replace(/\/+$/, "")}${path}`;

@@ -22,23 +22,26 @@ import { getPublishedArticle, listArticleStaticParams, listRelatedArticles } fro
 
 /**
  * Article page. Prerendered for every published (locale, article) pair at
- * build time; newer articles render on their first request. `instant = false`
- * lets unknown URLs block and return a real 404.
+ * build time; newer articles render on their first request. `ensureStatic =
+ * 'navigation'` keeps the whole page static (cached reads only), so that first
+ * request waits for the complete render — which is what lets these return a
+ * real status instead of a streamed 200:
  *
  *  - Draft/archived/unknown slug → 404 (public reads only see PUBLISHED).
  *  - Old category in the URL → 308 to the current URL.
  *  - Exists only in the other language → 404 with a friendly link
  *    (./not-found.tsx).
  */
-export const instant = false;
+export const ensureStatic = "navigation";
 
-// Called once per (locale, category) from the parent segments.
-export async function generateStaticParams({ params }: { params: { locale: string; categorySlug: string } }) {
-  const slugs = (await listArticleStaticParams())
-    .filter((entry) => entry.locale === params.locale && entry.categorySlug === params.categorySlug)
-    .map((entry) => ({ articleSlug: entry.articleSlug }));
+// Called once per locale (from the [locale] layout). Returns both segments:
+// the section page's own generateStaticParams doesn't feed child segments.
+export async function generateStaticParams({ params }: { params: { locale: string } }) {
+  const list = (await listArticleStaticParams())
+    .filter((entry) => entry.locale === params.locale)
+    .map(({ categorySlug, articleSlug }) => ({ categorySlug, articleSlug }));
   // Cache Components needs at least one param; the placeholder simply 404s.
-  return slugs.length ? slugs : [{ articleSlug: "__none__" }];
+  return list.length ? list : [{ categorySlug: "__none__", articleSlug: "__none__" }];
 }
 
 type Params = PageProps<"/[locale]/[categorySlug]/[articleSlug]">["params"];

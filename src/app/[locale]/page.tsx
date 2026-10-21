@@ -13,6 +13,9 @@ import { pageMetadata } from "@/lib/seo";
 import { categoryPath } from "@/lib/urls";
 import { listArticleCards, listPublicCategories } from "@/server/public/articles";
 
+// Must stay fully static (cached reads only): this is where shared links land.
+export const ensureStatic = "navigation";
+
 export async function generateMetadata({ params }: PageProps<"/[locale]">): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();

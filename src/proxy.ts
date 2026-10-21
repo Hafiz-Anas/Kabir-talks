@@ -1,23 +1,23 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { ARTICLE_PATH_HEADER } from "@/lib/urls";
+import { PAGED_SEGMENT } from "@/lib/urls";
 
 /**
- * Two jobs, both cheap (no database, no session lookup):
+ * Two cheap jobs (no database, no session lookup):
  *
  * 1. /admin: optimistic check only — bounces visitors with no session cookie
  *    to /login before any rendering. It does NOT verify the session or the
  *    role; the real authorization is requireAdmin() in the admin layout,
  *    pages and server actions.
  *
- * 2. Article URLs (/{locale}/{category}/{slug}): passes the path to the
- *    article's not-found page, which can't read route params. That page uses
- *    it to say "only available in English/Urdu" with a link, instead of a
- *    bare 404, when the article exists in the other language.
+ * 2. Listing pagination: the public URL /en/sports?page=2 is rewritten to the
+ *    static route /en/sports/p/2, so section and tag pages never read
+ *    searchParams and can return real 404s. ?page=1 and direct /p/N visits
+ *    redirect to the one public form.
  */
 export function proxy(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
+  const { pathname, search, searchParams } = request.nextUrl;
 
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
     if (!getSessionCookie(request)) {
@@ -28,11 +28,37 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const headers = new Headers(request.headers);
-  headers.set(ARTICLE_PATH_HEADER, pathname);
-  return NextResponse.next({ request: { headers } });
+  const segments = pathname.split("/").filter(Boolean);
+  const isTag = segments[1] === "tags";
+  const base = segments.slice(0, isTag ? 3 : 2);
+
+  // Direct visit to the internal route: /en/sports/p/2 → /en/sports?page=2
+  if (segments.at(-2) === PAGED_SEGMENT && segments.length === base.length + 2) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${base.join("/")}`;
+    url.searchParams.set("page", segments.at(-1)!);
+    return NextResponse.redirect(url, 308);
+  }
+
+  // Only listing URLs (/en/sports, /en/tags/cricket) — never /en/search.
+  const page = searchParams.get("page");
+  if (page === null || segments[1] === "search" || segments.length !== base.length) return NextResponse.next();
+
+  const url = request.nextUrl.clone();
+  url.searchParams.delete("page");
+  if (page === "1") return NextResponse.redirect(url, 308);
+  // Anything else (2, 3, "abc", "0") goes to the static route, which 404s if invalid.
+  url.pathname = `${pathname}/${PAGED_SEGMENT}/${encodeURIComponent(page)}`;
+  return NextResponse.rewrite(url);
 }
 
 export const config = {
-  matcher: ["/admin", "/admin/:path*", "/(en|ur)/:category/:slug"],
+  matcher: [
+    "/admin",
+    "/admin/:path*",
+    { source: "/(en|ur)/:section", has: [{ type: "query", key: "page" }] },
+    { source: "/(en|ur)/tags/:tag", has: [{ type: "query", key: "page" }] },
+    "/(en|ur)/:section/p/:page",
+    "/(en|ur)/tags/:tag/p/:page",
+  ],
 };
