@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { getDictionary } from "@/i18n";
 import { renderDocToHtml, renderDocToHtmlParts } from "@/lib/content/render";
 import { cn } from "@/lib/utils";
 import { imagePrefix } from "@/server/storage";
@@ -26,6 +27,11 @@ export function ArticleBody({
   inline?: ReactNode;
   inlineAfter?: number;
 }) {
+  const { article } = getDictionary(locale);
+  const options = {
+    imagePrefix: imagePrefix(),
+    labels: { video: article.embedVideo, postOnX: article.embedPostOnX, viewOnX: article.embedViewOnX },
+  };
   const prose = {
     lang: locale,
     dir: locale === "ur" ? "rtl" : "ltr",
@@ -33,12 +39,12 @@ export function ArticleBody({
   } as const;
 
   if (!inline) {
-    const html = renderDocToHtml(doc, { imagePrefix: imagePrefix() });
+    const html = renderDocToHtml(doc, options);
     // Safe: output of the sanitizing renderer only.
     return <div {...prose} className={cn(prose.className, className)} dangerouslySetInnerHTML={{ __html: html }} />;
   }
 
-  const [first, rest] = renderDocToHtmlParts(doc, { imagePrefix: imagePrefix() }, inlineAfter);
+  const [first, rest] = renderDocToHtmlParts(doc, options, inlineAfter);
   return (
     <div className={className}>
       {/* Safe: both halves are output of the sanitizing renderer only. */}

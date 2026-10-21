@@ -25,7 +25,7 @@ export async function Header({ locale, dict }: { locale: Locale; dict: Dictionar
           sections={sections}
           labels={{ nav: dict.nav, about: dict.footer.about, search: dict.search }}
         />
-        <Logo href={`/${locale}`} />
+        <Logo href={`/${locale}`} label={dict.nav.homeLink} />
 
         <nav aria-label={dict.nav.primary} className="hidden min-w-0 md:block">
           <ul className="flex items-center gap-6 overflow-x-auto text-sm no-scrollbar">

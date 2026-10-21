@@ -26,6 +26,8 @@ export const en = {
     openSearch: "Open search",
     closeSearch: "Close search",
     breadcrumb: "Breadcrumb",
+    skipToContent: "Skip to content",
+    homeLink: "Kabir Talks — home",
   },
   home: {
     title: "News and perspectives",
@@ -67,6 +69,9 @@ export const en = {
     comments: "Comments",
     commentsDescription: "Reader comments are on their way.",
     progress: "Reading progress",
+    embedVideo: "YouTube video",
+    embedPostOnX: "Post on X",
+    embedViewOnX: "View on X",
     unavailableTitle: "This article is only available in {language}",
     unavailableDescription: "We haven’t published this story in {current} yet.",
     readIn: "Read it in {language}",

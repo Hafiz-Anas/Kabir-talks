@@ -11,17 +11,20 @@ export function Logo({
   href,
   className,
   showWordmark = true,
+  label = "Kabir Talks — home",
 }: {
   href: string;
   className?: string;
   showWordmark?: boolean;
+  /** Accessible name; public pages pass the localized one. */
+  label?: string;
 }) {
   return (
     <Link
       href={href}
       lang="en"
       dir="ltr"
-      aria-label="Kabir Talks — home"
+      aria-label={label}
       className={cn(
         "group inline-flex shrink-0 items-center gap-2.5 rounded-sm sm:gap-3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         className,

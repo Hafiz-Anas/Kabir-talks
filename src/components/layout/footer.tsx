@@ -26,7 +26,7 @@ export async function Footer({ locale, dict }: { locale: Locale; dict: Dictionar
     <footer className="mt-auto border-t border-border bg-obsidian">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 md:grid-cols-[2fr_1fr_1fr_1fr] lg:px-8">
         <div className="space-y-4 sm:col-span-2 md:col-span-1">
-          <Logo href={`/${locale}`} />
+          <Logo href={`/${locale}`} label={dict.nav.homeLink} />
           <p className="max-w-sm text-sm text-grey">{dict.site.tagline}</p>
         </div>
 

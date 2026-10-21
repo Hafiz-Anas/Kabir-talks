@@ -43,7 +43,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:bg-gold focus:px-3 focus:py-2 focus:text-black"
         >
-          {locale === "ur" ? "مواد پر جائیں" : "Skip to content"}
+          {dict.nav.skipToContent}
         </a>
         <Header locale={locale} dict={dict} />
         <main id="main" className="flex-1">

@@ -24,6 +24,8 @@ export const ur: Dictionary = {
     openSearch: "تلاش کھولیں",
     closeSearch: "تلاش بند کریں",
     breadcrumb: "راستہ",
+    skipToContent: "مواد پر جائیں",
+    homeLink: "کبیر ٹاکس — سرورق",
   },
   home: {
     title: "خبریں اور تجزیے",
@@ -65,6 +67,9 @@ export const ur: Dictionary = {
     comments: "تبصرے",
     commentsDescription: "قارئین کے تبصرے جلد دستیاب ہوں گے۔",
     progress: "مطالعے کی پیش رفت",
+    embedVideo: "یوٹیوب ویڈیو",
+    embedPostOnX: "ایکس (X) پر پوسٹ",
+    embedViewOnX: "ایکس پر دیکھیں",
     unavailableTitle: "یہ مضمون صرف {language} میں دستیاب ہے",
     unavailableDescription: "ہم نے یہ خبر ابھی {current} میں شائع نہیں کی۔",
     readIn: "{language} میں پڑھیں",

@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 
 import { countWords, docToPlainText, readingMinutes, sanitizeDoc } from "../src/lib/content/document";
-import { renderDocToHtml } from "../src/lib/content/render";
+import { renderDocToHtml, renderDocToHtmlParts } from "../src/lib/content/render";
 import { normalizeXStatusUrl, parseYouTubeId, safeImageSrc, safeLinkHref, storagePublicPrefix } from "../src/lib/content/urls";
 import { missingForPublish } from "../src/lib/articles/rules";
-import { isValidSlug, slugify } from "../src/lib/articles/slug";
+import { parsePageParam, significantUpdate } from "../src/lib/articles/public";
+import { isReservedCategorySlug, isValidSlug, slugify } from "../src/lib/articles/slug";
 import { detectImageMime } from "../src/lib/uploads/file-type";
 
 const prefix = storagePublicPrefix("https://abc.supabase.co")!;
@@ -152,6 +153,47 @@ t("publish checklist", () => {
     keys(missingForPublish({ categoryId: "c", slug: "s", en: { title: "T", body }, ur: none, coverImageUrl: "x", coverImageAlt: " " })),
     ["coverAlt"],
   );
+});
+
+t("renderer split for inline slot (Phase 4)", () => {
+  const para = (text: string) => ({ type: "paragraph", content: [{ type: "text", text }] });
+  const heading = { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "H" }] };
+  const doc = { type: "doc", content: [para("one"), heading, para("two"), para("three"), para("four")] };
+  const [first, rest] = renderDocToHtmlParts(doc, { imagePrefix: prefix }, 3);
+  assert.equal(first, "<p>one</p><h2>H</h2><p>two</p><p>three</p>");
+  assert.equal(rest, "<p>four</p>");
+  assert.equal(first + rest, renderDocToHtml(doc, { imagePrefix: prefix }));
+  assert.deepEqual(renderDocToHtmlParts({ type: "doc", content: [para("only")] }, { imagePrefix: prefix }, 3), ["<p>only</p>", ""]);
+  // Unsafe content is still stripped in both halves.
+  const badLink = { type: "paragraph", content: [{ type: "text", text: "x", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }] };
+  const evil = { type: "doc", content: [para("a"), para("b"), para("c"), badLink, { type: "html", content: "<script>alert(1)</script>" }] };
+  const joined = renderDocToHtmlParts(evil, { imagePrefix: prefix }, 3).join("");
+  assert.ok(!/javascript:|<script/i.test(joined), joined);
+});
+
+t("renderer embed labels (Phase 4)", () => {
+  const doc = {
+    type: "doc",
+    content: [
+      { type: "youtube", attrs: { src: "https://youtu.be/dQw4w9WgXcQ" } },
+      { type: "tweet", attrs: { url: "https://x.com/someone/status/123" } },
+    ],
+  };
+  const en = renderDocToHtml(doc, { imagePrefix: prefix });
+  assert.ok(en.includes('title="YouTube video"') && en.includes("Post on X") && en.includes("View on X"), en);
+  const ur = renderDocToHtml(doc, { imagePrefix: prefix, labels: { video: "یوٹیوب ویڈیو", postOnX: "پوسٹ", viewOnX: "دیکھیں <b>" } });
+  assert.ok(ur.includes('title="یوٹیوب ویڈیو"') && ur.includes("دیکھیں &lt;b&gt;") && !ur.includes("Post on X"), ur);
+  assert.ok(ur.includes('<bdi dir="ltr" lang="en">@someone</bdi>'), ur);
+});
+
+t("public helpers (Phase 4)", () => {
+  assert.equal(parsePageParam(undefined), 1);
+  assert.equal(parsePageParam("2"), 2);
+  for (const bad of ["0", "-1", "1.5", "abc", "", "01", "999999", ["2", "3"]]) assert.equal(parsePageParam(bad), null, String(bad));
+  for (const slug of ["search", "tags", "about", "en", "ur", "admin", "login", "api"]) assert.ok(isReservedCategorySlug(slug), slug);
+  assert.ok(!isReservedCategorySlug("sports"));
+  assert.ok(!significantUpdate("2026-10-01T00:00:00Z", "2026-10-01T20:00:00Z"));
+  assert.ok(significantUpdate("2026-10-01T00:00:00Z", "2026-10-02T00:00:00Z"));
 });
 
 console.log(`\n${passed} test groups passed`);

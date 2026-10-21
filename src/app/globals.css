@@ -310,3 +310,13 @@
 .kt-article-body:lang(en) {
   max-width: 70ch;
 }
+
+/* The X embed card uses the Latin UI font; on Urdu pages its labels are Urdu. */
+.kt-prose:lang(ur) .kt-embed-x {
+  font-family: var(--font-urdu);
+  line-height: 2;
+}
+.kt-prose:lang(ur) .kt-embed-x-label {
+  font-size: 0.875rem;
+  letter-spacing: normal;
+}
