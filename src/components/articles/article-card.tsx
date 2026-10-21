@@ -97,7 +97,7 @@ export function ArticleCard({
             {article.excerpt}
           </p>
         )}
-        <p className="flex flex-wrap items-center gap-x-2 text-xs text-grey-dim">
+        <p className="flex flex-wrap items-center gap-x-2 text-xs text-grey">
           <time dateTime={article.publishedAt}>{formatPublicDate(article.publishedAt, locale)}</time>
           {article.readingMinutes > 0 && (
             <>

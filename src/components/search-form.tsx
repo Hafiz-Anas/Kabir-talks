@@ -38,7 +38,7 @@ export function SearchForm({
           placeholder={labels.placeholder}
           autoComplete="off"
           enterKeyHint="search"
-          className="h-11 w-full rounded-sm border border-input bg-obsidian ps-9 pe-3 text-base text-ivory placeholder:text-grey-dim focus-visible:border-gold-muted focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="h-11 w-full rounded-sm border border-input bg-obsidian ps-9 pe-3 text-base text-ivory placeholder:text-grey focus-visible:border-gold-muted focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
         />
       </label>
       <button

@@ -141,6 +141,29 @@ function Footer({ rtl }: { rtl: boolean }) {
   );
 }
 
+const COVER_MAX_BYTES = 8 * 1024 * 1024;
+
+/**
+ * Fetches the cover (only from our own bucket, at a path our uploads create)
+ * and returns it as a data URI. JPEG/PNG only — the image generator can't
+ * decode WebP/AVIF. Any problem (timeout, wrong type, too big) returns null and
+ * the branded title card is used instead, so a share image never fails.
+ */
+async function loadCover(url: string | null): Promise<string | null> {
+  const src = safeImageSrc(url, imagePrefix());
+  if (!src || !/\.(jpe?g|png)$/i.test(src)) return null;
+  try {
+    const response = await fetch(src, { signal: AbortSignal.timeout(5000) });
+    const type = response.headers.get("content-type")?.split(";")[0];
+    if (!response.ok || (type !== "image/jpeg" && type !== "image/png")) return null;
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > COVER_MAX_BYTES) return null;
+    return `data:${type};base64,${bytes.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function articleShareImageResponse(article: {
   locale: Locale;
   title: string;
@@ -148,10 +171,9 @@ export async function articleShareImageResponse(article: {
   coverImageUrl: string | null;
 }) {
   const rtl = article.locale === "ur";
-  const cover = safeImageSrc(article.coverImageUrl, imagePrefix());
+  const cover = await loadCover(article.coverImageUrl);
 
-  // JPEG/PNG covers become the image itself (Satori can't decode WebP/AVIF).
-  if (cover && /\.(jpe?g|png)$/i.test(cover)) {
+  if (cover) {
     return respond(
       <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", backgroundColor: "#0a0a0a" }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- Satori markup, not a page */}

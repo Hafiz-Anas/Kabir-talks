@@ -33,6 +33,9 @@ import { getPublishedArticle, listArticleStaticParams, listRelatedArticles } fro
  *    (./not-found.tsx).
  */
 export const ensureStatic = "navigation";
+// Navigations wait for the (static) page rather than showing a loading shell; also
+// silences the dev-only instant-navigation check for awaiting params.
+export const instant = false;
 
 // Called once per locale (from the [locale] layout). Returns both segments:
 // the section page's own generateStaticParams doesn't feed child segments.

@@ -4,6 +4,9 @@ import { ListingPage, listingMetadata, listingPagedParams } from "@/server/publi
 
 /** Tag page N (N ≥ 2). Public URL: /{locale}/tags/{tag}?page=N, rewritten here by src/proxy.ts. */
 export const ensureStatic = "navigation";
+// Navigations wait for the (static) page rather than showing a loading shell; also
+// silences the dev-only instant-navigation check for awaiting params.
+export const instant = false;
 
 export async function generateStaticParams({ params }: { params: { locale: string } }) {
   return (await listingPagedParams("tag", params.locale)).map(({ slug, page }) => ({ tagSlug: slug, page }));

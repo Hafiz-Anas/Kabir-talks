@@ -4,6 +4,9 @@ import { ListingPage, listingMetadata, listingSlugParams } from "@/server/public
 
 /** Articles with one tag, in the current language. Same rules as the section page. */
 export const ensureStatic = "navigation";
+// Navigations wait for the (static) page rather than showing a loading shell; also
+// silences the dev-only instant-navigation check for awaiting params.
+export const instant = false;
 
 export async function generateStaticParams() {
   return (await listingSlugParams("tag")).map(({ slug }) => ({ tagSlug: slug }));

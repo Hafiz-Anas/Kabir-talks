@@ -64,7 +64,7 @@ export async function Footer({ locale, dict }: { locale: Locale; dict: Dictionar
           <p className="text-ivory">{dict.footer.follow}</p>
           <ul className="flex flex-wrap gap-x-4 gap-y-2" lang="en" dir="ltr">
             {SOCIAL_LINKS.map((name) => (
-              <li key={name} className="text-grey-dim" title={dict.common.comingSoon}>
+              <li key={name} className="text-grey" title={dict.common.comingSoon}>
                 {name}
               </li>
             ))}
@@ -73,7 +73,7 @@ export async function Footer({ locale, dict }: { locale: Locale; dict: Dictionar
       </div>
 
       <div className="border-t border-border">
-        <p className="mx-auto max-w-6xl px-4 py-5 text-xs text-grey-dim sm:px-6 lg:px-8">
+        <p className="mx-auto max-w-6xl px-4 py-5 text-xs text-grey sm:px-6 lg:px-8">
           © <CurrentYear /> Kabir Talks. {dict.footer.rights}
         </p>
       </div>

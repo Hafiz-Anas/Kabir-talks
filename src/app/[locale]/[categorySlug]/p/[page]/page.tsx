@@ -8,6 +8,9 @@ import { ListingPage, listingMetadata, listingPagedParams } from "@/server/publi
  * Its canonical URL is the ?page form (set in listingMetadata).
  */
 export const ensureStatic = "navigation";
+// Navigations wait for the (static) page rather than showing a loading shell; also
+// silences the dev-only instant-navigation check for awaiting params.
+export const instant = false;
 
 export async function generateStaticParams({ params }: { params: { locale: string } }) {
   return (await listingPagedParams("category", params.locale)).map(({ slug, page }) => ({ categorySlug: slug, page }));

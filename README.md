@@ -3,14 +3,13 @@
 A bilingual (English + Urdu) news and blog platform, run by a single admin.
 One full-stack Next.js app: public site, admin area, and API in the same codebase, deployed to Vercel.
 
-**Current status: Phase 3 of 7 (Admin AI).** On top of the Phase 1 foundation and the Phase 2 admin core (bilingual Tiptap editor, image uploads, categories, publish and share), the admin can now:
+**Current status: Phase 4 of 7 (Public site).** Readers get the full public site in English and Urdu: a homepage, section, article, tag, search and About pages, built from the database, with share buttons and link previews made for WhatsApp, Facebook and X. See [Public site](#public-site).
 
-- draft articles with AI
-- translate English ⇄ Urdu
-- get headline, excerpt, SEO, tag and slug suggestions
-- rewrite selected text
+Built in earlier phases:
 
-All AI features run on Google Gemini, and every AI change needs an explicit click, with a review step before publishing. Public article pages arrive in Phase 4.
+- **Phase 1:** foundation (schema, auth, design system, layout shell)
+- **Phase 2:** admin core (bilingual Tiptap editor, image uploads, categories, publishing and sharing)
+- **Phase 3:** admin AI on Google Gemini (draft with AI, English ⇄ Urdu translation, headline/excerpt/SEO/tag/slug suggestions, rewriting selected text), always with an explicit click and a review step before publishing
 
 ---
 
@@ -167,7 +166,7 @@ npm run dev
 ```
 
 - <http://localhost:3000> redirects to `/en`
-- `/en` is the English site (LTR) and `/ur` is the Urdu site (RTL, Noto Nastaliq Urdu)
+- `/en` is the English site (LTR) and `/ur` is the Urdu site (RTL, Noto Nastaliq Urdu). Run `npm run seed:demo` to have stories to look at.
 - `/login` has sign-in and reader sign-up
 - `/admin` is for the admin only
 
@@ -181,7 +180,7 @@ npm run dev
 | `seed` / `seed:admin` | Categories + ad slots; the admin account |
 | `seed:demo` | Optional demo articles (see step 5) |
 | `storage:setup` | Creates/updates the `article-images` bucket (see step 6) |
-| `verify:content` | Self-checks for the content safety rules: link, YouTube and X URL allow-lists, Tiptap sanitizer, HTML renderer escaping, image magic bytes, slugs, publish checklist. No database needed. |
+| `verify:content` | Self-checks for the content safety rules: link, YouTube and X URL allow-lists, Tiptap sanitizer, HTML renderer escaping (also when the body is split for the inline ad slot), localized embed labels, image magic bytes, slugs, reserved section slugs, publish checklist, `?page` parsing. No database needed. |
 | `verify:ai` | Self-checks for the AI pipeline: Markdown ⇄ Tiptap round trips (incl. Urdu and mixed text), image/embed placeholders, stripping of malicious AI output, Urdu-script check, JSON validation, mock provider, rate limiter. No database or API key needed. |
 
 ## 8. AI setup (Gemini)
@@ -360,11 +359,89 @@ Inserting more AI content later clears the tick again.
 `/admin/categories` lets you add or edit categories:
 
 - English and Urdu names (both required)
-- slug: automatic from the English name, must be unique; `en`, `ur`, `admin`, `login`, and `api` are reserved
+- slug: automatic from the English name, must be unique; `en`, `ur`, `search`, `tags`, `about`, `admin`, `login` and `api` are reserved
 - descriptions
 - order: use the ↑/↓ buttons
 
 A category with articles can't be deleted directly. The dialog shows how many articles it has and lets you move them all to another category, then delete it, in one step.
+
+## Public site
+
+Everything readers see lives under `/en` and `/ur`. Reading never needs an account.
+
+### Pages and URLs
+
+| URL | Page |
+| --- | --- |
+| `/en`, `/ur` | Homepage: hero (newest **featured** story, otherwise the newest), up to 4 top stories, a "Latest" feed with **Load more**, then one section per category in the admin's order. Newsletter and Trending show as "Coming soon". With nothing published it shows "Stories coming soon". |
+| `/en/{section}` | Section (category) page: lead story, then a grid of 12 per page. Later pages: `?page=2`, `?page=3` … |
+| `/en/{section}/{article}` | Article page |
+| `/en/tags/{tag}` | Articles with that tag (same layout and paging as a section) |
+| `/en/search?q=…` | Search (never indexed by search engines) |
+| `/en/about` | About page. Its text is in the i18n dictionaries (`about.*` in `src/i18n/en.ts` / `ur.ts`). |
+
+Swap `en` for `ur` for the Urdu site. `/` redirects to `/en`.
+
+- **Reserved slugs.** A category can't use `search`, `tags`, `about`, `en`, `ur`, `admin`, `login` or `api`, because those paths are taken. The categories screen says so if you try.
+- **Moved articles.** If an article's category changes, its old URL (`/en/old-section/slug`) redirects permanently (308) to the new one. Article slugs are unique across the whole site.
+- **Not found.** Unknown sections, tags and articles, drafts, archived articles and out-of-range pages all return a real **404** with the site's 404 page.
+
+### Articles in only one language
+
+An article is *available* in a language when that language has a title **and** a body (the same rule as the publish checklist).
+
+- Lists, search, tag pages and related articles only show articles available in the current language.
+- Opening the other language's URL (e.g. `/ur/...` for an English-only story) shows "This article is only available in English" (in Urdu on the Urdu site) with a link to the available version. It returns a 404 status and is not indexed.
+- On an article page, the language switcher goes to the other version if it exists, otherwise to the other language's homepage.
+
+### Article page
+
+Breadcrumb, section, headline, standfirst (excerpt), byline, date (plus "Updated …" when it was edited at least a day after publishing), reading time, cover image, the body, tags, share buttons, related articles (same section first, then shared tags, then latest), and a thin gold reading-progress bar.
+
+- **Byline:** the admin account's name, or "Kabir Talks" when the account is still called "Admin".
+- **Share buttons:** Copy link, WhatsApp, Facebook, X, LinkedIn, Telegram, and the phone's own share sheet where the browser supports it.
+- **Coming soon** (later phases): Summarise, Ask this article, Listen (Phase 6), Save/bookmark and Comments (Phase 5). They show even when AI is configured.
+- **Ad slots:** `<AdSlot placement="…" />` sits at `home-top`, `home-feed`, `article-top`, `article-inline` (after the 3rd paragraph) and `article-bottom`. It renders **nothing** until Phase 7 and leaves no gap.
+- **Urdu:** Noto Nastaliq Urdu, right to left, larger text and line height around 2. English words and numbers inside Urdu text keep their own direction.
+
+### Search
+
+Searches published articles in the current language by title, excerpt and tag names (case-insensitive). Typing on an Arabic keyboard works too (ي and ك match ی and ک). Queries are trimmed to 100 characters on the server. It's a simple database search (`ILIKE`), fine for a small archive. For many thousands of articles, switch to Postgres full-text search.
+
+### Sharing (link previews)
+
+Every page has its own title and description, a canonical URL built from `NEXT_PUBLIC_SITE_URL`, Open Graph tags (`og:title`, `og:description`, `og:image` with width/height, `og:url`, `og:locale` `en_US`/`ur_PK`, and on articles `og:type=article`, published/modified time, section and tags) and a Twitter `summary_large_image` card.
+
+- **SEO fields win.** The article's SEO title/description are used when filled in, otherwise its title and excerpt (or the start of the body).
+- **hreflang** links (`en`, `ur`, `x-default`) appear only for language versions that exist.
+- **Share images** are always 1200×630 PNGs:
+  - `/og/article/{locale}/{slug}`: the article's cover photo (JPEG or PNG) cropped to fit, with a small Kabir Talks mark. Without a cover (or for WebP/AVIF covers, which the image generator can't read) it's a branded card: black background, gold "KT" mark, the wordmark, the section and the headline.
+  - `/og/site/{locale}`: a branded card for the homepage, sections, tags, search and About.
+  - They return 404 unless the article is published **and** available in that language, so a draft can never leak through a preview.
+  - Each article's image URL carries `?v=…` from its last update, so WhatsApp, Facebook and X fetch a new image after an edit.
+- **Urdu share images.** The image generator (`next/og`) can't lay out Noto Nastaliq Urdu (its text engine doesn't support the font's joining rules). So Urdu titles are shaped with **HarfBuzz** (`harfbuzzjs`, the same shaping engine browsers use), drawn as vector paths, and placed into the image. Latin words and numbers inside an Urdu title use Inter. Code: `src/server/og/shape-text.ts`. The fonts are in `assets/fonts/` (SIL Open Font License).
+
+### How to test link previews
+
+Locally you can check the tags and images directly:
+
+1. `npm run build && npm start`, then open `http://localhost:3000/og/article/ur/{slug}` to see an article's share image.
+2. View the page source of an article (or `curl -A "facebookexternalhit/1.1" http://localhost:3000/en/{section}/{slug}`) and check the `og:` and `twitter:` tags in `<head>`.
+
+Real previews need a public URL. After deploying:
+
+- **Facebook / WhatsApp:** paste the URL into the [Sharing Debugger](https://developers.facebook.com/tools/debug/) and press **Scrape Again** after edits. WhatsApp uses the same tags. It caches previews for a long time, so test new links, or links whose `?v=` image has changed.
+- **X:** post the link in a draft (or a private account) and check the card. X has no public validator any more.
+- **LinkedIn:** [Post Inspector](https://www.linkedin.com/post-inspector/).
+- **Telegram:** send the link to yourself. If an old preview sticks, ask `@WebpageBot` to refresh it.
+
+### Caching: why publishing shows up at once
+
+Public pages are built from cached reads (`"use cache"` in `src/server/public/articles.ts`) tagged `articles`, `article:{id}`, `category:{slug}` and `categories`. Every admin save, publish, unpublish, archive, delete and category change expires those tags and paths (`src/server/revalidate.ts`), so the next visitor gets fresh pages without a redeploy.
+
+- The homepage, section, tag, article and About pages are **fully static** (`ensureStatic = 'navigation'`). Known pages are built at deploy time, and new ones are built on their first visit. Because a page is only sent once it is complete, a draft or unknown URL can return a real 404 status instead of a 200 "soft 404". Only search renders per request.
+- `?page=N` on section and tag pages is rewritten by `src/proxy.ts` to an internal static route (`/en/sports/p/2`), so paged lists stay static too. The public URL is always the `?page=` form. `?page=1` and direct `/p/N` visits redirect to it.
+- The build reads the database (to prerender published articles), so `DATABASE_URL` must be reachable when Vercel builds.
 
 ---
 
@@ -375,7 +452,12 @@ A category with articles can't be deleted directly. The dialog shows how many ar
 ```
 src/
   app/
-    [locale]/               public site root layout (<html lang dir>), homepage, category placeholder, localized 404
+    [locale]/               public site root layout (<html lang dir>), homepage, about, search, localized 404
+      [categorySlug]/       section page; p/[page]/ = later pages (?page=N rewrite target)
+        [articleSlug]/      article page + not-found ("only available in …")
+      tags/[tagSlug]/       tag page; p/[page]/ = later pages
+    og/article, og/site     generated 1200×630 share images (route handlers)
+    api/public/             articles (homepage "Load more"), article-locales/[slug] (languages of a published article)
     (internal)/             root layout for non-localised pages (route group: not part of the URL)
       admin/                protected admin: layout gate, dashboard, articles (list, new, [id], [id]/preview), categories
       login/                sign-in / sign-up
@@ -389,8 +471,13 @@ src/
       editor/               Tiptap editor, toolbar, extensions, slug/tag/cover fields, upload client
       ai/                   AI client (runAiTask, useAiTask), write panel, translate button, suggestions,
                             selected-text menu, status card, error/Stop notices
-    content/article-body.tsx   renders a stored article body (shared with Phase 4)
-    layout/                 header, footer, logo, language switcher
+    articles/               article card (one component, three sizes), listing, load more, share bar,
+                            reading progress, reader tools (coming soon), "only available in" notice
+    content/article-body.tsx   renders a stored article body (admin preview + public article page)
+    layout/                 header (sections from the database), footer, mobile menu, search, logo,
+                            language switcher (+ locale-alternates.tsx for per-page overrides)
+    ad-slot.tsx             <AdSlot /> placeholder (renders nothing until Phase 7)
+    search-form.tsx, pagination.tsx, breadcrumb.tsx, not-found-message.tsx, coming-soon-strip.tsx
     ui/                     shadcn components
     coming-soon.tsx         <ComingSoon /> badge / panel
     skeleton-card.tsx, section-heading.tsx
@@ -409,14 +496,19 @@ src/
     articles/               rules.ts (publish checklist), slug.ts, validation.ts (Zod payload schema)
     uploads/file-type.ts    image magic-byte detection
     cache-tags.ts, urls.ts  cache tag names; public URL + share-link builders
-    auth, auth-client, auth-guards, env, features, fonts, navigation, utils
+    seo.ts                  per-page metadata (canonical, hreflang, Open Graph, Twitter)
+    articles/public.ts      public card type, page size, ?page parsing, "Updated" rule
+    auth, auth-client, auth-guards, env, features, fonts, format (dates), utils
   server/                   all data access (server only)
     articles.ts, categories.ts           ADMIN reads (requireAdmin, include drafts)
     article-actions.ts, category-actions.ts, uploads.ts   server actions (requireAdmin + Zod)
-    public/articles.ts      PUBLIC reads: published only, "use cache" + tags (for Phase 4)
+    public/articles.ts      PUBLIC reads: published + available in the locale only, "use cache" + tags
+    public/listing-pages.tsx   section/tag listing pages (shared by page 1 and later pages)
+    og/                     share-image rendering; shape-text.ts = HarfBuzz shaping for Urdu
     revalidate.ts, storage.ts            cache invalidation; service-role Storage client
     ai/tasks.ts, ai/tags.ts AI task handlers (draft, translate, suggest, edit, ping); tag matching
-  proxy.ts                  optimistic /admin redirect (no session cookie → /login)
+  proxy.ts                  optimistic /admin redirect (no session cookie → /login); ?page= rewrite for listings
+assets/fonts/               fonts for the share-image generator (OFL)
 drizzle/                    SQL migrations + snapshots
 scripts/                    setup-storage.ts, verify-content.ts
 ```
@@ -453,14 +545,16 @@ scripts/                    setup-storage.ts, verify-content.ts
 
 ### Next.js 16 Cache Components
 
-This project keeps Next 16's defaults: `cacheComponents: true` and `partialPrefetching: true`. Reading cookies or headers (which includes any session check) has to happen **inside a `<Suspense>` boundary**, or the build fails. See `admin/layout.tsx` and `admin/page.tsx` for the pattern. Static UI can be prerendered or cached with `"use cache"`. The framework's own guides are in `node_modules/next/dist/docs/`.
+This project keeps Next 16's defaults: `cacheComponents: true` and `partialPrefetching: true`. Reading cookies or headers (which includes any session check) has to happen **inside a `<Suspense>` boundary**, or the build fails. Public pages go further with `ensureStatic = 'navigation'` (see *Caching: why publishing shows up at once*). That rules out `cookies()`, `headers()` and `searchParams` on those pages, so Phase 5's reader features (bookmarks, comments) must load their per-reader parts in Client Components or behind `<Suspense>` in a way that keeps the page static. See `admin/layout.tsx` and `admin/page.tsx` for the pattern. Static UI can be prerendered or cached with `"use cache"`. The framework's own guides are in `node_modules/next/dist/docs/`.
 
 ### Locales and RTL
 
 - Locales are configured in `src/i18n/config.ts` (`en` → `ltr`, `ur` → `rtl`). UI strings live in `src/i18n/en.ts` and `src/i18n/ur.ts`, typed so that Urdu must have every English key.
 - Layouts use logical utilities only (`ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`), so they flip automatically in RTL.
 - Urdu text uses Noto Nastaliq Urdu with `line-height: 2`. The brand wordmark stays in Latin type.
-- The language switcher swaps only the locale segment, so `/en/sports` becomes `/ur/sports`.
+- The language switcher swaps only the locale segment, so `/en/sports` becomes `/ur/sports`. A page can override that (`SetLocaleAlternates`), which the article page uses when the other language doesn't exist.
+- Every visible string on public pages comes from the dictionaries, including the YouTube/X embed labels the renderer adds. Dates use `Intl` (`en-GB`; `ur-PK` for Urdu month names) with Western digits.
+- Urdu line heights are set in an unlayered block at the end of `globals.css`, because Tailwind's `text-*` sizes would otherwise squash Nastaliq.
 
 ### Design tokens
 
@@ -492,7 +586,7 @@ Integrity rules:
 1. **Foundation** (done): setup, schema, auth, design system, layout shell
 2. **Admin core** (done): Tiptap editor, articles, categories, image uploads (Supabase Storage), publish + share screen, preview
 3. **Admin AI** (done): prompt-to-draft, English ⇄ Urdu translation, headline/excerpt/SEO/tag/slug suggestions, selected-text edits, AI review safeguard (Gemini, with a mock mode for development). Gated by `features.aiEnabled`
-4. **Public site:** homepage, category and article pages from the database, Urdu RTL article layout, "coming soon" badges for missing translations
+4. **Public site** (done): homepage, section, article, tag, search and About pages; one-language articles; share buttons and link-preview metadata with generated share images (incl. Urdu); static pages that update as soon as you publish
 5. **Reader accounts:** profiles, bookmarks, comments with moderation
 6. **Reader AI:** summaries (cached in `ai_summaries`), "ask this article" chat, text-to-speech
 7. **Growth and launch:** newsletter (gated by `features.newsletterEnabled`), ads (`ad_slots`), SEO, analytics (`article_views`), Vercel deployment with a custom domain
@@ -513,4 +607,8 @@ Integrity rules:
 - **"The AI provider rejected the configuration".** The key is wrong or revoked, or `GEMINI_MODEL` names a model that doesn't exist or isn't available to your key. Use **Test connection** on the dashboard after fixing it.
 - **"The AI quota for this API key is used up" / "Too many AI requests".** Google's limits or this app's per-admin limit (`AI_RATE_LIMIT_PER_MINUTE`, default 30/min) were hit. Wait and press **Retry**; your article is unchanged.
 - **"The AI didn't answer in Urdu script".** The model replied in Hindi or Roman Urdu. Press **Retry**; nothing was inserted.
+- **A story doesn't appear on the public site.** It must be **Published**, and it only shows on the language it has a title *and* body for. Archived and draft stories never appear.
+- **WhatsApp/Facebook still show an old preview.** They cache previews per URL. Use Facebook's Sharing Debugger → *Scrape Again* (see *How to test link previews*).
+- **`next build` fails reading the database.** The build prerenders published articles, so `DATABASE_URL` must work at build time (on Vercel: set it for the build environment too).
 - **Local testing with PGlite: `unnamed prepared statement does not exist`.** PGlite is a single Postgres backend and can't run queries from several connections at once. Set `DATABASE_POOL_MAX=1` for the dev server. Real Postgres/Supabase doesn't need this.
+- **Local testing with PGlite: `next build` fails with `bind message supplies N parameters`.** The build renders pages in parallel workers, and PGlite (one backend) mixes up their queries. Build against PGlite with one worker (temporarily add `cpus: 1` under `experimental` in `next.config.ts` and don't commit it). Real Postgres/Supabase doesn't need this.

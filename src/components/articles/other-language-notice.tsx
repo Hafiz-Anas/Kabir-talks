@@ -74,7 +74,7 @@ export function OtherLanguageNotice({
         <span className={cn("mt-2 block text-2xl text-ivory", other === "ur" ? "font-urdu" : "font-serif leading-snug")}>
           {version.title}
         </span>
-        <span className="mt-2 block text-sm text-grey-dim">{version.date}</span>
+        <span className="mt-2 block text-sm text-grey">{version.date}</span>
       </Link>
 
       <p className="flex flex-wrap items-center justify-center gap-6">

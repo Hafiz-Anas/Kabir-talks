@@ -8,6 +8,9 @@ import { ListingPage, listingMetadata, listingSlugParams } from "@/server/public
  * unknown section renders to a real 404 (see src/server/public/listing-pages.tsx).
  */
 export const ensureStatic = "navigation";
+// Navigations wait for the (static) page rather than showing a loading shell; also
+// silences the dev-only instant-navigation check for awaiting params.
+export const instant = false;
 
 export async function generateStaticParams() {
   return (await listingSlugParams("category")).map(({ slug }) => ({ categorySlug: slug }));
