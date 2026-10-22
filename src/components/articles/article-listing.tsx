@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Pagination } from "@/components/pagination";
-import type { Dictionary, Locale } from "@/i18n";
+import { cardLabels, type Dictionary, type Locale } from "@/i18n";
 import type { ArticleCardData } from "@/lib/articles/public";
 
 import { ArticleCard } from "./article-card";
@@ -52,7 +52,7 @@ export function ArticleListing({
             <ArticleCard
               article={lead}
               locale={locale}
-              labels={dict.common}
+              labels={cardLabels(dict)}
               variant="large"
               priority
               headingLevel={2}
@@ -66,7 +66,7 @@ export function ArticleListing({
                   key={article.id}
                   article={article}
                   locale={locale}
-                  labels={dict.common}
+                  labels={cardLabels(dict)}
                   headingLevel={2}
                   priority={!lead && index < 3}
                 />

@@ -1,23 +1,27 @@
-import { Bookmark, Headphones, MessageCircleQuestion, Sparkles } from "lucide-react";
+import { Headphones, MessageCircleQuestion, Sparkles } from "lucide-react";
 
+import { BookmarkButton } from "@/components/bookmarks/bookmark-button";
 import { ComingSoon } from "@/components/coming-soon";
-import type { Dictionary } from "@/i18n";
+import type { Dictionary, Locale } from "@/i18n";
 
 /**
- * Reader AI toolbar (Summarise, Ask, Listen) and Save. Placeholders only:
- * Phase 6 wires the AI tools (even if AI is configured now), Phase 5 adds
- * bookmarks. They are deliberately not buttons, so nothing looks clickable.
+ * Reader toolbar: AI tools (Summarise, Ask, Listen) and Save.
+ * The AI tools are placeholders until Phase 6 (even if AI is configured now)
+ * and deliberately not buttons, so nothing looks clickable. Save is the real
+ * bookmark button (state loaded in the browser).
  */
-export function ReaderTools({ dict }: { dict: Dictionary }) {
+export function ReaderTools({ articleId, locale, dict }: { articleId: string; locale: Locale; dict: Dictionary }) {
   const tools = [
     { label: dict.article.summarise, Icon: Sparkles },
     { label: dict.article.ask, Icon: MessageCircleQuestion },
     { label: dict.article.listen, Icon: Headphones },
-    { label: dict.article.bookmark, Icon: Bookmark },
   ];
 
   return (
-    <ul aria-label={dict.article.readerTools} className="flex flex-wrap gap-2">
+    <ul aria-label={dict.article.readerTools} className="flex flex-wrap items-center gap-2">
+      <li className="flex flex-col gap-1">
+        <BookmarkButton articleId={articleId} locale={locale} labels={dict.bookmarks} variant="tool" />
+      </li>
       {tools.map(({ label, Icon }) => (
         <li
           key={label}

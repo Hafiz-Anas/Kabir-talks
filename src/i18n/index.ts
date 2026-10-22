@@ -13,5 +13,11 @@ export function fill(template: string, values: Record<string, string | number>):
   return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? String(values[key]) : match));
 }
 
+/** What an article card needs: reading time and the bookmark button's strings. */
+export function cardLabels(dict: Dictionary) {
+  return { minRead: dict.common.minRead, bookmarks: dict.bookmarks };
+}
+export type CardLabels = ReturnType<typeof cardLabels>;
+
 export type { Dictionary };
 export * from "./config";

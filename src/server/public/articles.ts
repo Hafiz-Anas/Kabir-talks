@@ -60,7 +60,7 @@ const cardColumns = {
   categoryNameUr: categories.nameUr,
 };
 
-function selectCards() {
+export function selectCards() {
   return db.select(cardColumns).from(articles).innerJoin(categories, eq(categories.id, articles.categoryId));
 }
 
@@ -86,11 +86,11 @@ function toCard(row: CardRow, locale: Locale): ArticleCardData | null {
   };
 }
 
-function toCards(rows: CardRow[], locale: Locale) {
+export function toCards(rows: CardRow[], locale: Locale) {
   return rows.map((row) => toCard(row, locale)).filter((card): card is ArticleCardData => card !== null);
 }
 
-const newestFirst = [desc(articles.publishedAt), desc(articles.id)];
+export const newestFirst = [desc(articles.publishedAt), desc(articles.id)];
 
 export type ListOptions = {
   locale: Locale;

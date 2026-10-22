@@ -36,6 +36,13 @@ export function proxy(request: NextRequest) {
       url.searchParams.set("next", `${pathname}${search}`);
       return NextResponse.redirect(url);
     }
+    // These pages stream (dynamic), so they can't answer a bad ?page= with a real 404: send it to page 1.
+    const page = searchParams.get("page");
+    if (page !== null && !/^[1-9]\d{0,4}$/.test(page)) {
+      const url = request.nextUrl.clone();
+      url.searchParams.delete("page");
+      return NextResponse.redirect(url);
+    }
     return NextResponse.next();
   }
 

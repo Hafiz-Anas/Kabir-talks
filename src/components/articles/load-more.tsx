@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import type { Dictionary, Locale } from "@/i18n";
+import type { CardLabels, Dictionary, Locale } from "@/i18n";
 import { type ArticleCardData, FEED_PAGE_SIZE } from "@/lib/articles/public";
 
 import { ArticleCard } from "./article-card";
@@ -21,7 +21,7 @@ export function LoadMore({
   /** Hero and top stories, already shown above the feed. */
   exclude: string[];
   initialOffset: number;
-  labels: Pick<Dictionary["home"], "loadMore" | "loading" | "loadError"> & Pick<Dictionary["common"], "minRead">;
+  labels: Pick<Dictionary["home"], "loadMore" | "loading" | "loadError"> & CardLabels;
 }) {
   const [items, setItems] = useState<ArticleCardData[]>([]);
   const [offset, setOffset] = useState(initialOffset);

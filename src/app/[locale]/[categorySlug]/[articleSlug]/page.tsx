@@ -12,7 +12,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { ComingSoon } from "@/components/coming-soon";
 import { ArticleBody } from "@/components/content/article-body";
 import { SetLocaleAlternates } from "@/components/layout/locale-alternates";
-import { type Dictionary, fill, getDictionary, isLocale, type Locale, locales } from "@/i18n";
+import { cardLabels, type Dictionary, fill, getDictionary, isLocale, type Locale, locales } from "@/i18n";
 import { significantUpdate, tagName } from "@/lib/articles/public";
 import { docToPlainText } from "@/lib/content/document";
 import { formatPublicDate } from "@/lib/format";
@@ -150,7 +150,7 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <ReaderTools dict={dict} />
+            <ReaderTools articleId={article.id} locale={locale} dict={dict} />
           </div>
           <ShareBar url={siteUrl(path)} title={content.title} labels={dict.article} />
         </header>
@@ -226,7 +226,7 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
             </h2>
             <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
               {related.map((card) => (
-                <ArticleCard key={card.id} article={card} locale={locale} labels={dict.common} />
+                <ArticleCard key={card.id} article={card} locale={locale} labels={cardLabels(dict)} />
               ))}
             </div>
           </div>

@@ -34,7 +34,7 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
   const dict = getDictionary(locale);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-10 px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-4xl space-y-10 py-10 sm:py-12">
       <header className="kt-rule space-y-2 pt-6">
         <h1 className="text-4xl text-ivory">{dict.account.title}</h1>
         <p className="text-grey">{dict.account.description}</p>

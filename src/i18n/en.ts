@@ -245,6 +245,8 @@ export const en = {
     pageIntro: "Articles you’ve saved, newest first.",
     empty: "You haven’t saved any articles yet. Use the bookmark button on any story to keep it here.",
     removeButton: "Remove",
+    signIn: "Sign in",
+    signUp: "Create account",
   },
   comments: {
     title: "Comments",

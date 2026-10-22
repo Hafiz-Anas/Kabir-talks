@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { type Dictionary, fill, type Locale } from "@/i18n";
+import { BookmarkButton } from "@/components/bookmarks/bookmark-button";
+import { type CardLabels, fill, type Locale } from "@/i18n";
 import type { ArticleCardData } from "@/lib/articles/public";
 import { formatPublicDate } from "@/lib/format";
 import { articlePath } from "@/lib/urls";
@@ -15,7 +16,9 @@ import { CoverPlaceholder } from "./cover-placeholder";
  * "Load more" Client Component can render it too.
  *
  * The headline link stretches over the whole card (after:inset-0), so the
- * card is one click/tap target with a single, accessible link name.
+ * card is one click/tap target with a single, accessible link name. The
+ * bookmark button sits above that link (z-10) and loads its state in the
+ * browser, so cards stay static.
  */
 
 export type ArticleCardVariant = "large" | "medium" | "compact";
@@ -38,7 +41,7 @@ export function ArticleCard({
 }: {
   article: ArticleCardData;
   locale: Locale;
-  labels: Pick<Dictionary["common"], "minRead">;
+  labels: CardLabels;
   variant?: ArticleCardVariant;
   showExcerpt?: boolean;
   /** Set on the first, above-the-fold card (homepage hero, category lead). */
@@ -75,6 +78,13 @@ export function ArticleCard({
         ) : (
           <CoverPlaceholder size={variant} />
         )}
+        <BookmarkButton
+          articleId={article.id}
+          locale={locale}
+          labels={labels.bookmarks}
+          variant="icon"
+          className={cn("absolute top-2 end-2", compact && "size-8")}
+        />
       </div>
 
       <div className="min-w-0 space-y-2">

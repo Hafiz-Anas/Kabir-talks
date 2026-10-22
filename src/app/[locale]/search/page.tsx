@@ -6,7 +6,7 @@ import { ArticleCard } from "@/components/articles/article-card";
 import { Pagination } from "@/components/pagination";
 import { SearchForm } from "@/components/search-form";
 import { SkeletonCard } from "@/components/skeleton-card";
-import { type Dictionary, fill, getDictionary, isLocale, type Locale } from "@/i18n";
+import { cardLabels, type Dictionary, fill, getDictionary, isLocale, type Locale } from "@/i18n";
 import { pageMetadata } from "@/lib/seo";
 import {
   normalizeSearchQuery,
@@ -100,7 +100,7 @@ async function Results({
             <ol className="space-y-8">
               {items.map((article) => (
                 <li key={article.id} className="border-b border-border pb-8 last:border-b-0">
-                  <ArticleCard article={article} locale={locale} labels={dict.common} variant="compact" showExcerpt />
+                  <ArticleCard article={article} locale={locale} labels={cardLabels(dict)} variant="compact" showExcerpt />
                 </li>
               ))}
             </ol>

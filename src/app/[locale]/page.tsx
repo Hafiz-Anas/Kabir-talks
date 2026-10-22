@@ -7,7 +7,7 @@ import { ArticleCard } from "@/components/articles/article-card";
 import { LoadMore } from "@/components/articles/load-more";
 import { ComingSoonStrip } from "@/components/coming-soon-strip";
 import { SectionHeading } from "@/components/section-heading";
-import { type Dictionary, getDictionary, isLocale, type Locale } from "@/i18n";
+import { cardLabels, type Dictionary, getDictionary, isLocale, type Locale } from "@/i18n";
 import { type ArticleCardData, FEED_PAGE_SIZE } from "@/lib/articles/public";
 import { pageMetadata } from "@/lib/seo";
 import { categoryPath } from "@/lib/urls";
@@ -82,14 +82,14 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
       <AdSlot placement="home-top" />
 
       <section aria-label={dict.home.topStories} className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-12">
-        <ArticleCard article={hero} locale={locale} labels={dict.common} variant="large" priority headingLevel={2} />
+        <ArticleCard article={hero} locale={locale} labels={cardLabels(dict)} variant="large" priority headingLevel={2} />
         {topStories.length > 0 && (
           <div className="space-y-6 lg:border-s lg:border-border lg:ps-10">
             <h2 className="text-xs font-medium tracking-[0.14em] text-gold uppercase">{dict.home.topStories}</h2>
             <ul className="divide-y divide-border">
               {topStories.map((card) => (
                 <li key={card.id} className="py-5 first:pt-0 last:pb-0">
-                  <ArticleCard article={card} locale={locale} labels={dict.common} variant="compact" />
+                  <ArticleCard article={card} locale={locale} labels={cardLabels(dict)} variant="compact" />
                 </li>
               ))}
             </ul>
@@ -102,7 +102,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
           <SectionHeading id="latest" title={dict.home.latest} />
           <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {feed.map((card) => (
-              <ArticleCard key={card.id} article={card} locale={locale} labels={dict.common} />
+              <ArticleCard key={card.id} article={card} locale={locale} labels={cardLabels(dict)} />
             ))}
           </div>
           {feedPage.length > FEED_PAGE_SIZE && (
@@ -110,7 +110,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
               locale={locale}
               exclude={leadIds}
               initialOffset={FEED_PAGE_SIZE}
-              labels={{ ...dict.home, minRead: dict.common.minRead }}
+              labels={{ ...dict.home, ...cardLabels(dict) }}
             />
           )}
         </section>
@@ -162,7 +162,7 @@ function CategorySection({
       />
       <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
         {articles.map((card) => (
-          <ArticleCard key={card.id} article={card} locale={locale} labels={dict.common} />
+          <ArticleCard key={card.id} article={card} locale={locale} labels={cardLabels(dict)} />
         ))}
       </div>
     </section>
