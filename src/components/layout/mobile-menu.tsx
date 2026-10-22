@@ -9,9 +9,10 @@ import { SearchForm } from "@/components/search-form";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { Dictionary, Locale } from "@/i18n";
 
+import { AccountLinks, type AccountLabels } from "./account-menu";
 import { LanguageSwitcher } from "./language-switcher";
 
-/** Phone/tablet menu: sections, About, search and language. Hidden from md up. */
+/** Phone/tablet menu: sections, About, search, language and account. Hidden from md up. */
 export function MobileMenu({
   locale,
   sections,
@@ -20,7 +21,8 @@ export function MobileMenu({
   locale: Locale;
   sections: { href: string; label: string }[];
   labels: {
-    nav: Pick<Dictionary["nav"], "menu" | "openMenu" | "closeMenu" | "sections" | "language" | "home" | "signIn">;
+    nav: Pick<Dictionary["nav"], "menu" | "openMenu" | "closeMenu" | "sections" | "language" | "home" | "signUp"> &
+      AccountLabels;
     about: string;
     search: Dictionary["search"];
   };
@@ -93,12 +95,7 @@ export function MobileMenu({
             <LanguageSwitcher locale={locale} label={labels.nav.language} showActive="always" className="-ms-2 text-base" />
           </div>
 
-          <Link
-            href={`/login?next=/${locale}`}
-            className="flex h-11 items-center justify-center rounded-sm border border-gold-muted text-sm text-ivory transition-colors hover:border-gold hover:text-gold-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            {labels.nav.signIn}
-          </Link>
+          <AccountLinks locale={locale} labels={labels.nav} linkClass={linkClass} />
         </div>
       </SheetContent>
     </Sheet>

@@ -41,7 +41,11 @@ const nextConfig: NextConfig = {
     },
   },
   async redirects() {
-    return [{ source: "/", destination: "/en", permanent: false }];
+    return [
+      { source: "/", destination: "/en", permanent: false },
+      // Sign-in moved to the localized /en/login and /ur/login in Phase 5; ?next= is kept.
+      { source: "/login", destination: "/en/login", permanent: false },
+    ];
   },
   turbopack: {
     rules: {

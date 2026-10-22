@@ -9,6 +9,11 @@ export function articlePath(locale: Locale, categorySlug: string, articleSlug: s
   return `/${locale}/${categorySlug}/${articleSlug}`;
 }
 
+/** Sign-in page that returns to `next` afterwards (validated again on arrival: src/lib/auth-rules.ts). */
+export function loginPath(locale: Locale, next?: string, page: "login" | "signup" = "login") {
+  return next ? `/${locale}/${page}?next=${encodeURIComponent(next)}` : `/${locale}/${page}`;
+}
+
 export function categoryPath(locale: Locale, categorySlug: string) {
   return `/${locale}/${categorySlug}`;
 }

@@ -119,3 +119,27 @@ export function safeImageSrc(value: unknown, publicPrefix: string | null): strin
   const objectPath = value.slice(publicPrefix.length);
   return IMAGE_OBJECT_PATH.test(objectPath) ? value : null;
 }
+
+/** Reader profile photos: avatars/{userId}/{uuid}.{ext} in the same bucket (src/server/account-actions.ts). */
+export const AVATAR_OBJECT_PATH =
+  /^avatars\/[A-Za-z0-9_-]{1,64}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp|avif)$/;
+
+const GOOGLE_AVATAR_HOST = "lh3.googleusercontent.com";
+
+/**
+ * Profile photos may come from our bucket (uploaded through the avatar
+ * pipeline) or from Google (the account's Google photo). Anything else → null,
+ * and the initials avatar is shown instead.
+ */
+export function safeAvatarSrc(value: unknown, publicPrefix: string | null): string | null {
+  if (typeof value !== "string" || value.length > 2048) return null;
+  if (publicPrefix && value.startsWith(publicPrefix)) {
+    return AVATAR_OBJECT_PATH.test(value.slice(publicPrefix.length)) ? value : null;
+  }
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname === GOOGLE_AVATAR_HOST ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}

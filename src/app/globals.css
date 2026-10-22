@@ -320,3 +320,9 @@
   font-size: 0.875rem;
   letter-spacing: normal;
 }
+
+/* Password fields have their own show/hide button (components/auth/password-input.tsx); hide Edge's built-in one. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}

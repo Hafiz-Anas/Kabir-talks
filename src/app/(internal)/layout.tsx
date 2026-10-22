@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { fontVariables } from "@/lib/fonts";
 
 /**
- * Root layout for non-localised pages (/login, /admin). English UI, LTR.
+ * Root layout for non-localised pages (/admin). English UI, LTR.
  * The "(internal)" route group does not appear in URLs.
  */
 

@@ -1,4 +1,4 @@
-import { boolean, index, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { bigint, boolean, index, integer, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 /**
  * Better Auth tables.
@@ -85,3 +85,16 @@ export const verification = pgTable(
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
+
+/**
+ * Better Auth rate limiting with `storage: "database"` (src/lib/auth.ts), so
+ * limits hold across serverless instances. One row per (client IP, auth
+ * path); `last_request` is epoch milliseconds. Phase 5 also stores the
+ * per-reader comment limit here (src/server/rate-limit.ts, keys "comment:…").
+ */
+export const rateLimit = pgTable("rate_limit", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+});

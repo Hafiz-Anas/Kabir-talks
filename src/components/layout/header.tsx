@@ -1,16 +1,16 @@
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
 import type { Dictionary, Locale } from "@/i18n";
 import { categoryPath } from "@/lib/urls";
 import { listPublicCategories } from "@/server/public/articles";
 
+import { AccountMenu } from "./account-menu";
 import { HeaderSearch } from "./header-search";
 import { LanguageSwitcher } from "./language-switcher";
 import { Logo } from "./logo";
 import { MobileMenu } from "./mobile-menu";
 
-/** Masthead: logo, sections (from the database, in sortOrder), search, language, sign in, mobile menu. */
+/** Masthead: logo, sections (from the database, in sortOrder), search, language, account (sign in or avatar menu, loaded in the browser), mobile menu. */
 export async function Header({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   const sections = (await listPublicCategories()).map((category) => ({
     href: categoryPath(locale, category.slug),
@@ -45,14 +45,7 @@ export async function Header({ locale, dict }: { locale: Locale; dict: Dictionar
         <div className="ms-auto flex items-center gap-1 sm:gap-3">
           <HeaderSearch locale={locale} labels={{ ...dict.search, ...dict.nav }} />
           <LanguageSwitcher locale={locale} label={dict.nav.language} />
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="hidden shrink-0 border-gold-muted bg-transparent hover:border-gold hover:bg-transparent hover:text-gold-soft min-[400px]:inline-flex"
-          >
-            <Link href={`/login?next=/${locale}`}>{dict.nav.signIn}</Link>
-          </Button>
+          <AccountMenu locale={locale} labels={dict.nav} />
         </div>
       </div>
     </header>

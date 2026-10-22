@@ -20,7 +20,7 @@ function jsonError(status: number, code: AiError["code"], message = AI_ERROR_MES
 }
 
 export async function POST(request: Request) {
-  // Logged-out → redirect to /login; signed-in non-admin → 404.
+  // Logged-out → redirect to /en/login; signed-in non-admin → 404.
   const session = await requireAdmin();
 
   if (!features.aiEnabled) return jsonError(503, "not_configured");

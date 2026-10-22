@@ -7,7 +7,7 @@ import { PAGED_SEGMENT } from "@/lib/urls";
  * Two cheap jobs (no database, no session lookup):
  *
  * 1. /admin: optimistic check only — bounces visitors with no session cookie
- *    to /login before any rendering. It does NOT verify the session or the
+ *    to /en/login before any rendering. It does NOT verify the session or the
  *    role; the real authorization is requireAdmin() in the admin layout,
  *    pages and server actions.
  *
@@ -21,7 +21,7 @@ export function proxy(request: NextRequest) {
 
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
     if (!getSessionCookie(request)) {
-      const url = new URL("/login", request.url);
+      const url = new URL("/en/login", request.url);
       url.searchParams.set("next", `${pathname}${search}`);
       return NextResponse.redirect(url);
     }

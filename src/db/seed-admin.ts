@@ -14,7 +14,7 @@ import { account, user } from "./schema";
  *
  * Rows are written exactly the way Better Auth's email/password sign-up writes
  * them (user + "credential" account, password hashed with Better Auth's own
- * hasher), so the admin can sign in at /login normally.
+ * hasher), so the admin can sign in at /en/login normally.
  *
  *   npm run seed:admin                     create admin, or promote existing user
  *   npm run seed:admin -- --reset-password also overwrite the password from env

@@ -22,6 +22,13 @@
       "when": 1792483382627,
       "tag": "0002_ai_review_pending",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792652579729,
+      "tag": "0003_auth_rate_limit",
+      "breakpoints": true
     }
   ]
 }

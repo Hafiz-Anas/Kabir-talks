@@ -19,7 +19,7 @@ export function SignOutButton() {
       onClick={async () => {
         setPending(true);
         await signOut();
-        router.replace("/login");
+        router.replace("/en/login");
         router.refresh();
       }}
     >
