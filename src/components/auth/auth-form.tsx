@@ -110,12 +110,15 @@ export function AuthForm({
       setPending(false);
       return;
     }
+    // No return page given: land on the homepage in the reader's preferred language.
+    const preferred = (result.data?.user as { preferredLocale?: unknown } | undefined)?.preferredLocale;
+    const destination = !rawNext && (preferred === "en" || preferred === "ur") ? `/${preferred}` : next;
     // Admin pages use another root layout; a full load there, a client navigation elsewhere.
-    if (next.startsWith("/admin")) {
-      window.location.assign(next);
+    if (destination.startsWith("/admin")) {
+      window.location.assign(destination);
       return;
     }
-    router.replace(next);
+    router.replace(destination);
     router.refresh();
   }
 

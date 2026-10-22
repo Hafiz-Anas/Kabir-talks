@@ -38,9 +38,8 @@ export const comments = pgTable(
     articleId: uuid("article_id")
       .notNull()
       .references(() => articles.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+    // SET NULL (Phase 5): deleting an account keeps its comments, shown as "Deleted user".
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
     // Replies. Deleting a parent removes its thread.
     parentId: uuid("parent_id").references((): AnyPgColumn => comments.id, {
       onDelete: "cascade",

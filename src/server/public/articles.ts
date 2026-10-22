@@ -25,13 +25,13 @@ import { type ArticleDoc, countWords, docToPlainText, readingMinutes } from "@/l
  *    isLocaleComplete rule, mirrored in SQL by availableIn()).
  */
 
-const isPublished = eq(articles.status, "PUBLISHED");
+export const isPublished = eq(articles.status, "PUBLISHED");
 
 /** Mirrors isDocEmpty(): a document counts when it has visible text or media. */
 const DOC_HAS_CONTENT =
   'strict $.** ? ((@.type == "text" && @.text like_regex "[^[:space:]]") || @.type == "image" || @.type == "youtube" || @.type == "tweet")';
 
-function availableIn(locale: Locale): SQL<boolean> {
+export function availableIn(locale: Locale): SQL<boolean> {
   const title = locale === "en" ? articles.titleEn : articles.titleUr;
   const body = locale === "en" ? articles.bodyEn : articles.bodyUr;
   return sql<boolean>`(coalesce(btrim(${title}), '') <> '' and coalesce(jsonb_path_exists(${body}, ${DOC_HAS_CONTENT}), false))`;

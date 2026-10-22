@@ -1,5 +1,7 @@
 import { bigint, boolean, index, integer, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+import { localeEnum } from "./_shared";
+
 /**
  * Better Auth tables.
  *
@@ -8,6 +10,8 @@ import { bigint, boolean, index, integer, pgEnum, pgTable, text, timestamp } fro
  *  - `role` uses a Postgres enum and is NOT NULL (generated: nullable text).
  *  - timestamps are `timestamptz` (generated: `timestamp`), so DB defaults
  *    don't depend on the server's timezone.
+ *  - `preferred_locale` (Phase 5) is a Better Auth additional field (read-only
+ *    there; set by src/server/account-actions.ts).
  * Relations live in ./relations.ts.
  */
 
@@ -25,6 +29,8 @@ export const user = pgTable("user", {
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
   role: userRole("role").default("reader").notNull(),
+  // Phase 5: reader's language for post-sign-in landing and emails (null = not chosen).
+  preferredLocale: localeEnum("preferred_locale"),
 });
 
 export const session = pgTable(

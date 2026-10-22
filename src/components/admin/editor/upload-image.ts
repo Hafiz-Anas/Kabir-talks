@@ -1,6 +1,7 @@
 "use client";
 
 import { isImageMime, MAX_IMAGE_BYTES } from "@/lib/uploads/file-type";
+import { putToSignedUrl } from "@/lib/uploads/signed-put";
 import { createImageUpload, finalizeImageUpload } from "@/server/uploads";
 
 /**
@@ -16,22 +17,7 @@ export async function uploadImage(file: File, onProgress?: (percent: number) => 
   const start = await createImageUpload({ contentType: file.type, size: file.size });
   if (!start.ok) throw new Error(start.error);
 
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", start.signedUrl);
-    xhr.setRequestHeader("content-type", file.type);
-    xhr.setRequestHeader("cache-control", "max-age=31536000");
-    xhr.setRequestHeader("x-upsert", "false");
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100));
-    };
-    xhr.onload = () =>
-      xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed (${xhr.status}).`));
-    xhr.onerror = () => reject(new Error("Network error during upload."));
-    xhr.send(file);
-  });
-
-  onProgress?.(100);
+  await putToSignedUrl(start.signedUrl, file, onProgress);
   const done = await finalizeImageUpload({ path: start.path });
   if (!done.ok) throw new Error(done.error);
   return done.url;

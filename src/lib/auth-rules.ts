@@ -10,6 +10,9 @@ export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 128;
 export const NAME_MAX = 60;
 
+/** Sent by the delete-account dialog once the reader has typed the (localized) confirmation word. */
+export const DELETE_CONFIRMATION = "DELETE";
+
 export type PasswordRule = "length" | "letter" | "number";
 
 /** Each rule and whether `password` meets it, in display order. */

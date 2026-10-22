@@ -30,7 +30,8 @@ export function PasswordInput({
 }) {
   const [visible, setVisible] = useState(false);
   return (
-    <div className="relative">
+    // LTR as a whole, so the toggle sits on the side the text ends on (also on Urdu pages).
+    <div className="relative" dir="ltr">
       <Input
         id={id}
         name={name}

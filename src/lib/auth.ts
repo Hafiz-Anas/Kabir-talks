@@ -88,6 +88,13 @@ export const auth = betterAuth({
         // Never accept a role from sign-up input: admins are created by the seed script only.
         input: false,
       },
+      // Phase 5: shown in the session so sign-in can land in the reader's language.
+      // Read-only here; changed only by updateProfile (src/server/account-actions.ts).
+      preferredLocale: {
+        type: "string",
+        required: false,
+        input: false,
+      },
     },
   },
 

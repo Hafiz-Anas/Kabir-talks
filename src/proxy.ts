@@ -6,7 +6,7 @@ import { PAGED_SEGMENT } from "@/lib/urls";
 /**
  * Two cheap jobs (no database, no session lookup):
  *
- * 1. /admin: optimistic check only — bounces visitors with no session cookie
+ * 1. /admin and /{locale}/account: optimistic check only — bounces visitors with no session cookie
  *    to /en/login before any rendering. It does NOT verify the session or the
  *    role; the real authorization is requireAdmin() in the admin layout,
  *    pages and server actions.
@@ -22,6 +22,17 @@ export function proxy(request: NextRequest) {
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
     if (!getSessionCookie(request)) {
       const url = new URL("/en/login", request.url);
+      url.searchParams.set("next", `${pathname}${search}`);
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
+  // Reader account pages: same optimistic check (requireUser() is the real one).
+  const account = pathname.match(/^\/(en|ur)\/account(\/|$)/);
+  if (account) {
+    if (!getSessionCookie(request)) {
+      const url = new URL(`/${account[1]}/login`, request.url);
       url.searchParams.set("next", `${pathname}${search}`);
       return NextResponse.redirect(url);
     }
@@ -56,6 +67,8 @@ export const config = {
   matcher: [
     "/admin",
     "/admin/:path*",
+    "/(en|ur)/account",
+    "/(en|ur)/account/:path*",
     { source: "/(en|ur)/:section", has: [{ type: "query", key: "page" }] },
     { source: "/(en|ur)/tags/:tag", has: [{ type: "query", key: "page" }] },
     "/(en|ur)/:section/p/:page",
