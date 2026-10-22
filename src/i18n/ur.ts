@@ -72,7 +72,6 @@ export const ur: Dictionary = {
     listen: "سنیں",
     bookmark: "محفوظ کریں",
     comments: "تبصرے",
-    commentsDescription: "قارئین کے تبصرے جلد دستیاب ہوں گے۔",
     progress: "مطالعے کی پیش رفت",
     embedVideo: "یوٹیوب ویڈیو",
     embedPostOnX: "ایکس (X) پر پوسٹ",

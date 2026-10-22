@@ -31,6 +31,8 @@ export const user = pgTable("user", {
   role: userRole("role").default("reader").notNull(),
   // Phase 5: reader's language for post-sign-in landing and emails (null = not chosen).
   preferredLocale: localeEnum("preferred_locale"),
+  // Phase 5: set by the admin from the comment queue; blocked readers can read but not comment.
+  commentingBlocked: boolean("commenting_blocked").default(false).notNull(),
 });
 
 export const session = pgTable(

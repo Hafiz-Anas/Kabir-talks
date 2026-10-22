@@ -48,6 +48,7 @@ async function EditArticle({ params }: { params: PageProps<"/admin/articles/[id]
         coverImageUrl: article.coverImageUrl,
         coverImageAlt: article.coverImageAlt ?? "",
         isFeatured: article.isFeatured,
+        commentsEnabled: article.commentsEnabled,
         seoTitleEn: article.seoTitleEn ?? "",
         seoTitleUr: article.seoTitleUr ?? "",
         seoDescriptionEn: article.seoDescriptionEn ?? "",

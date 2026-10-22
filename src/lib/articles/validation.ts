@@ -45,6 +45,7 @@ export const articlePayloadSchema = z.object({
   coverImageUrl: optionalText(1000),
   coverImageAlt: optionalText(LIMITS.alt),
   isFeatured: z.boolean().default(false),
+  commentsEnabled: z.boolean().default(true),
   seoTitleEn: optionalText(LIMITS.seoTitle),
   seoTitleUr: optionalText(LIMITS.seoTitle),
   seoDescriptionEn: optionalText(LIMITS.seoDescription),

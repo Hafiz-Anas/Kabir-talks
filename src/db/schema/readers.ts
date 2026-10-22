@@ -5,6 +5,7 @@ import {
   pgTable,
   primaryKey,
   text,
+  timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -44,8 +45,13 @@ export const comments = pgTable(
     parentId: uuid("parent_id").references((): AnyPgColumn => comments.id, {
       onDelete: "cascade",
     }),
+    // Plain text only (never rendered as HTML). Emptied when the comment is deleted.
     body: text("body").notNull(),
     status: commentStatus("status").default("PENDING").notNull(),
+    // Phase 5: a deleted comment that still has replies stays as a "Comment deleted" placeholder.
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    // Phase 5: last edit by the author (allowed for 15 minutes after posting).
+    editedAt: timestamp("edited_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

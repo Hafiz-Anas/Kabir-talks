@@ -9,7 +9,8 @@ import { ReaderTools } from "@/components/articles/reader-tools";
 import { ReadingProgress } from "@/components/articles/reading-progress";
 import { ShareBar } from "@/components/articles/share-bar";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { ComingSoon } from "@/components/coming-soon";
+import { CommentCount } from "@/components/comments/comment-count";
+import { LazyComments } from "@/components/comments/lazy-comments";
 import { ArticleBody } from "@/components/content/article-body";
 import { SetLocaleAlternates } from "@/components/layout/locale-alternates";
 import { cardLabels, type Dictionary, fill, getDictionary, isLocale, type Locale, locales } from "@/i18n";
@@ -147,6 +148,8 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
             )}
             <span aria-hidden className="text-grey-dim">·</span>
             <span>{fill(dict.common.minRead, { minutes: content.readingMinutes })}</span>
+            <span aria-hidden className="text-grey-dim">·</span>
+            <CommentCount articleId={article.id} labels={dict.comments} />
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -210,10 +213,15 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
           <AdSlot placement="article-bottom" />
 
           <section aria-labelledby="comments" className="space-y-4">
-            <h2 id="comments" className="text-2xl text-ivory">
+            <h2 id="comments" className="scroll-mt-28 text-2xl text-ivory">
               {dict.article.comments}
             </h2>
-            <ComingSoon variant="panel" label={dict.common.comingSoon} description={dict.article.commentsDescription} />
+            {/* Loaded in the browser when scrolled near, so moderation never needs a page rebuild. */}
+            <LazyComments
+              articleId={article.id}
+              locale={locale}
+              labels={{ ...dict.comments, signIn: dict.bookmarks.signIn, signUp: dict.bookmarks.signUp, adminBadge: dict.site.name }}
+            />
           </section>
         </div>
       </article>

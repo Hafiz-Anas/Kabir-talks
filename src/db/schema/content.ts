@@ -59,6 +59,8 @@ export const articles = pgTable(
     // Phase 3: AI-written/translated content not yet confirmed as reviewed by the admin.
     // Publishing (from the editor or the article list) is blocked while true.
     aiReviewPending: boolean("ai_review_pending").default(false).notNull(),
+    // Phase 5: off = existing comments still show, no new ones (editor side panel toggle).
+    commentsEnabled: boolean("comments_enabled").default(true).notNull(),
 
     // RESTRICT: deleting the author must not silently delete their articles.
     authorId: text("author_id")

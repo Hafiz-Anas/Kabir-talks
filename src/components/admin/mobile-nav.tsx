@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { AdminNav } from "./admin-nav";
 
 /** Sidebar as a slide-over sheet on small screens. */
-export function MobileNav() {
+export function MobileNav({ pendingComments = 0 }: { pendingComments?: number }) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -24,7 +24,7 @@ export function MobileNav() {
           <SheetTitle className="sr-only">Admin menu</SheetTitle>
           <Logo href="/admin" />
         </SheetHeader>
-        <AdminNav onNavigate={() => setOpen(false)} />
+        <AdminNav onNavigate={() => setOpen(false)} pendingComments={pendingComments} />
       </SheetContent>
     </Sheet>
   );

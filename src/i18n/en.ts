@@ -74,7 +74,6 @@ export const en = {
     listen: "Listen",
     bookmark: "Save",
     comments: "Comments",
-    commentsDescription: "Reader comments are on their way.",
     progress: "Reading progress",
     embedVideo: "YouTube video",
     embedPostOnX: "Post on X",

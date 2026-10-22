@@ -38,3 +38,19 @@ const publicDate = {
 export function formatPublicDate(value: Date | string, locale: "en" | "ur") {
   return publicDate[locale].format(new Date(value));
 }
+
+const relative = {
+  en: new Intl.RelativeTimeFormat("en-GB", { numeric: "auto" }),
+  ur: new Intl.RelativeTimeFormat("ur-PK", { numeric: "auto" }),
+} as const;
+
+/** "5 minutes ago" / "۵ منٹ پہلے" for the last week, then the date. For comments (rendered in the browser). */
+export function formatRelative(value: Date | string, locale: "en" | "ur", now = Date.now()) {
+  const seconds = Math.round((new Date(value).getTime() - now) / 1000);
+  const abs = Math.abs(seconds);
+  if (abs >= 7 * 86400) return formatPublicDate(value, locale);
+  if (abs < 60) return relative[locale].format(0, "second");
+  if (abs < 3600) return relative[locale].format(Math.round(seconds / 60), "minute");
+  if (abs < 86400) return relative[locale].format(Math.round(seconds / 3600), "hour");
+  return relative[locale].format(Math.round(seconds / 86400), "day");
+}

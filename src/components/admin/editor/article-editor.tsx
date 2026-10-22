@@ -76,6 +76,8 @@ export type EditorInitial = {
   coverImageUrl: string | null;
   coverImageAlt: string;
   isFeatured: boolean;
+  /** Phase 5: readers can post new comments (existing ones always show). */
+  commentsEnabled: boolean;
   seoTitleEn: string;
   seoTitleUr: string;
   seoDescriptionEn: string;
@@ -215,6 +217,7 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
       coverImageUrl: source.coverImageUrl,
       coverImageAlt: source.coverImageAlt,
       isFeatured: source.isFeatured,
+      commentsEnabled: source.commentsEnabled,
       seoTitleEn: source.seoTitleEn,
       seoTitleUr: source.seoTitleUr,
       seoDescriptionEn: source.seoDescriptionEn,
@@ -694,6 +697,17 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="featured">Featured on homepage</Label>
               <Switch id="featured" checked={form.isFeatured} onCheckedChange={(checked) => update("isFeatured", checked)} />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="comments-enabled">Allow new comments</Label>
+                <Switch
+                  id="comments-enabled"
+                  checked={form.commentsEnabled}
+                  onCheckedChange={(checked) => update("commentsEnabled", checked)}
+                />
+              </div>
+              <p className="text-xs text-grey">Off: existing comments stay visible, but readers can’t post new ones.</p>
             </div>
           </Panel>
 

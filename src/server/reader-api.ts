@@ -1,6 +1,9 @@
 import "server-only";
 
+import type { z } from "zod";
+
 import { auth } from "@/lib/auth";
+import type { CommentErrorCode } from "@/lib/comments";
 import { env } from "@/lib/env";
 
 /**
@@ -50,4 +53,24 @@ export async function readJson(request: Request, maxBytes = 16_000): Promise<unk
   } catch {
     return null;
   }
+}
+
+/** HTTP status for each comment error code. */
+export const COMMENT_ERROR_STATUS: Record<CommentErrorCode, number> = {
+  unauthorized: 401,
+  blocked: 403,
+  closed: 403,
+  forbidden: 403,
+  edit_expired: 403,
+  rate_limited: 429,
+  empty: 400,
+  too_long: 400,
+  invalid: 400,
+  not_found: 404,
+};
+
+/** Zod issue → comment error code ("empty" / "too_long" come from commentBodySchema). */
+export function bodyError(error: z.ZodError): CommentErrorCode {
+  const message = error.issues.find((issue) => issue.path[0] === "body")?.message;
+  return message === "empty" || message === "too_long" ? message : "invalid";
 }

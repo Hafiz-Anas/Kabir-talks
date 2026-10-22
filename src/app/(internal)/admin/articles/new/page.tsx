@@ -54,6 +54,7 @@ async function NewArticle() {
         coverImageUrl: null,
         coverImageAlt: "",
         isFeatured: false,
+        commentsEnabled: true,
         seoTitleEn: "",
         seoTitleUr: "",
         seoDescriptionEn: "",

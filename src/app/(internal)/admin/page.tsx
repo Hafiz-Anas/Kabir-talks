@@ -13,6 +13,7 @@ import { requireAdmin } from "@/lib/auth-guards";
 import { features } from "@/lib/features";
 import { formatDateTime } from "@/lib/format";
 import { getDashboardData } from "@/server/articles";
+import { pendingCommentCount } from "@/server/comments";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -37,13 +38,14 @@ export default function AdminDashboardPage() {
 
 async function Dashboard() {
   await requireAdmin();
-  const { stats, recent } = await getDashboardData();
+  const [{ stats, recent }, pendingComments] = await Promise.all([getDashboardData(), pendingCommentCount()]);
 
   const cards = [
     { label: "Total articles", value: stats.total, href: "/admin/articles" },
     { label: "Published", value: stats.published, href: "/admin/articles?status=PUBLISHED" },
     { label: "Drafts", value: stats.drafts, href: "/admin/articles?status=DRAFT" },
     { label: "Categories", value: stats.categories, href: "/admin/categories" },
+    { label: "Pending comments", value: pendingComments, href: "/admin/comments" },
   ];
 
   const flags = [
@@ -54,7 +56,7 @@ async function Dashboard() {
 
   return (
     <>
-      <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {cards.map((card) => (
           <li key={card.label}>
             <Link
@@ -132,8 +134,8 @@ async function Dashboard() {
 function DashboardSkeleton() {
   return (
     <div className="space-y-6" aria-busy>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {Array.from({ length: 4 }, (_, i) => (
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        {Array.from({ length: 5 }, (_, i) => (
           <Skeleton key={i} className="h-24 bg-obsidian-raised" />
         ))}
       </div>

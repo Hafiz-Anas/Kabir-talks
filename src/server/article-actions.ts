@@ -163,6 +163,7 @@ export async function saveArticle(input: unknown): Promise<SaveArticleResult> {
     coverImageUrl,
     coverImageAlt: coverImageUrl ? data.coverImageAlt : null,
     isFeatured: data.isFeatured,
+    commentsEnabled: data.commentsEnabled,
     seoTitleEn: data.seoTitleEn,
     seoTitleUr: data.seoTitleUr,
     seoDescriptionEn: data.seoDescriptionEn,

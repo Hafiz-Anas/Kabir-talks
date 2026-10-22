@@ -13,18 +13,18 @@ const ACTIVE: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Articles", href: "/admin/articles", icon: FileText },
   { label: "Categories", href: "/admin/categories", icon: FolderTree },
+  { label: "Comments", href: "/admin/comments", icon: MessageSquare },
 ];
 
 // Later phases: shown greyed out so the admin knows what's coming.
 const UPCOMING: NavItem[] = [
-  { label: "Comments", icon: MessageSquare },
   { label: "Subscribers", icon: Mail },
   { label: "Ads", icon: Megaphone },
   { label: "Analytics", icon: BarChart3 },
   { label: "Settings", icon: Settings },
 ];
 
-export function AdminNav({ onNavigate }: { onNavigate?: () => void }) {
+export function AdminNav({ onNavigate, pendingComments = 0 }: { onNavigate?: () => void; pendingComments?: number }) {
   const pathname = usePathname();
 
   return (
@@ -46,7 +46,13 @@ export function AdminNav({ onNavigate }: { onNavigate?: () => void }) {
                 )}
               >
                 <item.icon aria-hidden className="size-4" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {item.href === "/admin/comments" && pendingComments > 0 && (
+                  <span className="rounded-full bg-gold px-1.5 text-xs font-medium text-black tabular-nums">
+                    {pendingComments}
+                    <span className="sr-only"> pending</span>
+                  </span>
+                )}
               </Link>
             </li>
           );

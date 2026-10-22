@@ -36,6 +36,13 @@
       "when": 1792653629821,
       "tag": "0004_reader_profile",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792655231513,
+      "tag": "0005_comments_moderation",
+      "breakpoints": true
     }
   ]
 }
