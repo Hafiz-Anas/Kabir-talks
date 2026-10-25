@@ -86,13 +86,12 @@ async function Moderation({ searchParams }: { searchParams: PageProps<"/admin/co
         ))}
       </nav>
 
-      {items.length === 0 ? (
-        <p className="rounded-md border border-dashed border-gold-muted/50 bg-obsidian p-8 text-center text-grey">
-          {tab.status === "PENDING" ? "Nothing waiting for review." : `No ${tab.label.toLowerCase()} comments.`}
-        </p>
-      ) : (
-        <ModerationList key={`${tab.param}-${params.page}`} status={tab.status} items={items} />
-      )}
+      <ModerationList
+        key={`${tab.param}-${params.page}`}
+        status={tab.status}
+        items={items}
+        emptyText={tab.status === "PENDING" ? "Nothing waiting for review." : `No ${tab.label.toLowerCase()} comments.`}
+      />
 
       {pages > 1 && (
         <nav aria-label="Pagination" className="flex items-center justify-between text-sm">

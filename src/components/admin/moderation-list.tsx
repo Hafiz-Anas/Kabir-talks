@@ -38,8 +38,20 @@ const ERRORS: Record<string, string> = {
  * The moderation queue: select comments for bulk approve/reject, or act on
  * one (approve, reject, delete, reply as admin, block/unblock the author).
  * Comment text is shown as plain text, exactly as the reader typed it.
+ *
+ * It also renders the tab's empty state, so it stays mounted (and keeps its
+ * confirmation message) when an action empties the tab, e.g. approving the
+ * last pending comments.
  */
-export function ModerationList({ status, items }: { status: "PENDING" | "APPROVED" | "REJECTED"; items: ModerationItem[] }) {
+export function ModerationList({
+  status,
+  items,
+  emptyText,
+}: {
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  items: ModerationItem[];
+  emptyText: string;
+}) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
@@ -63,6 +75,19 @@ export function ModerationList({ status, items }: { status: "PENDING" | "APPROVE
       else next.add(id);
       return next;
     });
+
+  if (items.length === 0) {
+    return (
+      <div className="space-y-4">
+        {message && (
+          <p role="status" className="text-sm text-gold-soft">
+            {message}
+          </p>
+        )}
+        <p className="rounded-md border border-dashed border-gold-muted/50 bg-obsidian p-8 text-center text-grey">{emptyText}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
