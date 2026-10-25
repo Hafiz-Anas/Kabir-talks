@@ -84,7 +84,7 @@ Fill in `.env.local`. Every variable is explained in `.env.example`.
 | `GEMINI_MODEL` | optional | Gemini model code; default `gemini-3.8-flash` |
 | `AI_PROVIDER` | optional | `gemini` (default) or `mock` (fake AI for local development; ignored in production builds) |
 | `AI_RATE_LIMIT_PER_MINUTE` | optional | Cost guard: AI model calls per admin per minute (default 30) |
-| `DATABASE_POOL_MAX` | optional | Override the DB pool size (default 1 in production, 5 in dev). Set to `1` only for a single-backend stand-in like PGlite |
+| `DATABASE_POOL_MAX` | optional | Connections per server instance (default 1 in production, 5 in dev). The app opens **one** shared pool per process. On Vercel with the transaction pooler keep it at 1 to 3, since every serverless instance has its own pool. Use `1` for a single-backend stand-in like PGlite |
 | `RESEND_API_KEY` | optional | Enables the newsletter (Phase 7) |
 
 Variables are validated with Zod in `src/lib/env.ts`. A missing required value stops the app at startup with a clear list of what's wrong. Missing optional values only turn their feature off through `src/lib/features.ts`, which then shows "Coming soon" or "Not configured" instead of crashing.
