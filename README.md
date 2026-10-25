@@ -3,13 +3,14 @@
 A bilingual (English + Urdu) news and blog platform, run by a single admin.
 One full-stack Next.js app: public site, admin area, and API in the same codebase, deployed to Vercel.
 
-**Current status: Phase 4 of 7 (Public site).** Readers get the full public site in English and Urdu: a homepage, section, article, tag, search and About pages, built from the database, with share buttons and link previews made for WhatsApp, Facebook and X. See [Public site](#public-site).
+**Current status: Phase 5 of 7 (Reader accounts, bookmarks and comments).** Readers can create a free account (email and password, or Google when configured), save articles, and join moderated comment threads in English and Urdu. The admin moderates comments from `/admin/comments`. Reading never needs an account, and public pages stay fully static: everything personal loads in the browser. See [Reader accounts](#reader-accounts) and [Comment moderation](#comment-moderation).
 
 Built in earlier phases:
 
 - **Phase 1:** foundation (schema, auth, design system, layout shell)
 - **Phase 2:** admin core (bilingual Tiptap editor, image uploads, categories, publishing and sharing)
 - **Phase 3:** admin AI on Google Gemini (draft with AI, English ⇄ Urdu translation, headline/excerpt/SEO/tag/slug suggestions, rewriting selected text), always with an explicit click and a review step before publishing
+- **Phase 4:** the public site (homepage, section, article, tag, search and About pages, share buttons and link previews), static with real 404s
 
 ---
 
@@ -101,6 +102,9 @@ This applies these migrations over `DIRECT_URL`:
 - `drizzle/0000_init.sql`: all 14 tables, enums, indexes, and constraints
 - `drizzle/0001_enable_rls.sql`: Row Level Security
 - `drizzle/0002_ai_review_pending.sql` (Phase 3): adds one boolean column, `articles.ai_review_pending`, default `false`. It's safe on existing data. See [AI review safeguard](#ai-review-safeguard).
+- `drizzle/0003_auth_rate_limit.sql` (Phase 5): a new `rate_limit` table (`key`, `count`, `last_request`), with RLS on. Better Auth stores its per-IP sign-in/sign-up limits here (`rateLimit.storage: "database"`), and the comment limit uses it too. A database table, not memory, so limits hold across Vercel's serverless instances.
+- `drizzle/0004_reader_profile.sql` (Phase 5): `user.preferred_locale` (`en`/`ur`, nullable), and `comments.user_id` becomes nullable with `ON DELETE SET NULL` (it was `CASCADE`), so deleting an account keeps its comments as "Deleted user".
+- `drizzle/0005_comments_moderation.sql` (Phase 5): `user.commenting_blocked` (default `false`), `articles.comments_enabled` (default `true`), `comments.deleted_at` (placeholder for a deleted comment that has replies) and `comments.edited_at`. All are additive and safe on existing data.
 
 `0001` turns on Row Level Security (with no policies) for every table. Supabase exposes the `public` schema through its auto-generated REST API, and this app never uses that API: it connects as the `postgres` role, which bypasses RLS. Enabling RLS shuts the REST API out without affecting the app.
 
@@ -167,7 +171,8 @@ npm run dev
 
 - <http://localhost:3000> redirects to `/en`
 - `/en` is the English site (LTR) and `/ur` is the Urdu site (RTL, Noto Nastaliq Urdu). Run `npm run seed:demo` to have stories to look at.
-- `/login` has sign-in and reader sign-up
+- `/en/login` and `/en/signup` (and `/ur/…`) are reader sign-in and sign-up; the old `/login` redirects to `/en/login`
+- `/en/account` and `/en/account/bookmarks` are the signed-in reader's own pages
 - `/admin` is for the admin only
 
 ### All scripts
@@ -181,6 +186,7 @@ npm run dev
 | `seed:demo` | Optional demo articles (see step 5) |
 | `storage:setup` | Creates/updates the `article-images` bucket (see step 6) |
 | `verify:content` | Self-checks for the content safety rules: link, YouTube and X URL allow-lists, Tiptap sanitizer, HTML renderer escaping (also when the body is split for the inline ad slot), localized embed labels, image magic bytes, slugs, reserved section slugs, publish checklist, `?page` parsing. No database needed. |
+| `verify:readers` | Self-checks for the Phase 5 rules: the post-sign-in return URL (same-site paths only), password rules, display names, avatar URL allow-list, reserved section slugs. No database needed. |
 | `verify:ai` | Self-checks for the AI pipeline: Markdown ⇄ Tiptap round trips (incl. Urdu and mixed text), image/embed placeholders, stripping of malicious AI output, Urdu-script check, JSON validation, mock provider, rate limiter. No database or API key needed. |
 
 ## 8. AI setup (Gemini)
@@ -239,11 +245,11 @@ For testing error states, the mock responds to markers in your prompt or text:
 
 ## Admin guide
 
-Sign in at `/login` with the admin account and open `/admin`.
+Sign in at `/en/login` with the admin account and open `/admin` (or use **Admin dashboard** in the avatar menu on the public site).
 
 ### Dashboard
 
-The dashboard has cards for total, published, and draft articles and for categories. Below them are your five most recently edited articles and a **New article** button. On a phone, the sidebar becomes a menu behind the ☰ button. Items marked *Coming soon* (Comments, Subscribers, Ads, Analytics, Settings) arrive in later phases.
+The dashboard has cards for total, published, and draft articles, categories, and **Pending comments**. Below them are your five most recently edited articles and a **New article** button. On a phone, the sidebar becomes a menu behind the ☰ button. **Comments** in the sidebar shows a gold badge with the number of comments waiting for you. Items marked *Coming soon* (Subscribers, Ads, Analytics, Settings) arrive in later phases.
 
 The **AI status** card shows **Not configured** (with the reason), **Mock mode**, or **Gemini (model)**. **Test connection** sends one tiny request.
 
@@ -354,6 +360,20 @@ Inserting more AI content later clears the tick again.
 
 `/admin/articles` lists articles 20 per page. You can filter by status and category, search titles in English or Urdu, and sort by last updated or published date. The ⋯ menu on each row has: Edit, Preview, Publish or Unpublish, Copy link (published only), Archive, and Delete. Delete asks for confirmation and suggests **Archive** as the safer choice, because deleting also removes the article's comments and stats permanently.
 
+### Comment moderation
+
+Reader comments never appear until you approve them. Open **Comments** (`/admin/comments`):
+
+- **Tabs:** Pending (oldest first, so you work through the queue), Approved and Rejected, each with its count. 25 per page.
+- Each comment shows the text exactly as typed (plain text, never formatted), the author's name and email, the article (opens the live page in a new tab), the date, whether it was edited, and, for replies, the start of the comment it answers.
+- **Approve / Reject** one comment, or tick several (or **Select all**) and use **Approve selected / Reject selected**. Approved comments appear on the article immediately, in both languages: there is nothing to rebuild or republish.
+- **Reply** publishes your answer straight away as "Kabir Talks". Replying to a pending comment approves it too (otherwise your reply would hang under an invisible comment). Replies are one level deep.
+- **Delete** removes the comment. If it has replies, readers see "Comment deleted" in its place so the replies still make sense.
+- **Block author** stops that reader from commenting (they can still read and see the discussion, with a polite message instead of the comment box). **Unblock author** undoes it. Admin accounts can't be blocked.
+- **Turning comments off for one article:** in the editor side panel, switch off **Allow new comments** and save. Existing comments stay visible; nobody can post new ones.
+- **Rejected** comments are hidden from everyone except their author, who sees "Not approved" on their account page.
+- When a reader edits an approved comment (allowed for 15 minutes), it goes back to Pending, so an approved comment can't be swapped for spam later.
+
 ### Categories
 
 `/admin/categories` lets you add or edit categories:
@@ -400,7 +420,8 @@ Breadcrumb, section, headline, standfirst (excerpt), byline, date (plus "Updated
 
 - **Byline:** the admin account's name, or "Kabir Talks" when the account is still called "Admin".
 - **Share buttons:** Copy link, WhatsApp, Facebook, X, LinkedIn, Telegram, and the phone's own share sheet where the browser supports it.
-- **Coming soon** (later phases): Summarise, Ask this article, Listen (Phase 6), Save/bookmark and Comments (Phase 5). They show even when AI is configured.
+- **Save** (bookmark) and **Comments** are live (Phase 5, see [Reader accounts](#reader-accounts)). The comment count sits next to the reading time.
+- **Coming soon** (Phase 6): Summarise, Ask this article, Listen. They show even when AI is configured.
 - **Ad slots:** `<AdSlot placement="…" />` sits at `home-top`, `home-feed`, `article-top`, `article-inline` (after the 3rd paragraph) and `article-bottom`. It renders **nothing** until Phase 7 and leaves no gap.
 - **Urdu:** Noto Nastaliq Urdu, right to left, larger text and line height around 2. English words and numbers inside Urdu text keep their own direction.
 
@@ -442,6 +463,68 @@ Public pages are built from cached reads (`"use cache"` in `src/server/public/ar
 - The homepage, section, tag, article and About pages are **fully static** (`ensureStatic = 'navigation'`). Known pages are built at deploy time, and new ones are built on their first visit. Because a page is only sent once it is complete, a draft or unknown URL can return a real 404 status instead of a 200 "soft 404". Only search renders per request.
 - `?page=N` on section and tag pages is rewritten by `src/proxy.ts` to an internal static route (`/en/sports/p/2`), so paged lists stay static too. The public URL is always the `?page=` form. `?page=1` and direct `/p/N` visits redirect to it.
 - The build reads the database (to prerender published articles), so `DATABASE_URL` must be reachable when Vercel builds.
+- **Per-reader parts never make a page dynamic.** The header's avatar menu, bookmark buttons, the comment count and the comment thread all load in the browser after the static page arrives (`/api/auth/get-session`, `/api/reader/bookmarks`, `/api/comments`). Those endpoints answer `Cache-Control: private, no-store`, so one reader's data can't be cached for another, and the cached HTML is identical for every visitor. Approving or deleting a comment therefore needs no page rebuild.
+
+---
+
+## Reader accounts
+
+Accounts are optional and free. They let readers save articles and comment. Reading never needs one.
+
+### Signing up and signing in
+
+- `/en/signup`, `/ur/signup`, `/en/login`, `/ur/login`. Sign up with a name, email and password, or **Continue with Google** when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set.
+- **Password rules** (shown live while typing, and enforced by the server): 8 to 128 characters, with at least one letter and one number.
+- **Sign-up always creates a reader.** The `role` field can't be set from a sign-up request, and a database hook forces `reader` on every account Better Auth creates. Only `npm run seed:admin` can make an admin.
+- **Back to where you were:** the "Sign in" link, the bookmark prompt and the comment prompt pass the current page as `?next=`. It is only followed if it's a path on this site (`https://…`, `//…`, backslashes and control characters are refused, see `safeReturnPath`); Better Auth also rejects off-site callback URLs. Without `?next=`, readers land on the homepage in their preferred language.
+- **Header:** signed-in readers see their avatar (photo or initials). Its menu has My bookmarks, My account, Admin dashboard (admin only) and Sign out. It loads in the browser, so pages stay static.
+
+### Abuse protection (rate limits)
+
+All limits are stored in the `rate_limit` table, so they work on serverless.
+
+| What | Limit | Where |
+| --- | --- | --- |
+| Sign in | 10 attempts per IP per 5 minutes | `AUTH_RATE_LIMITS` in `src/lib/auth.ts` |
+| Sign up | 10 per IP per hour | same |
+| Change password / reset password | 10 per IP per 10 minutes | same |
+| Password-reset and verification emails (Phase 7) | 5 per IP per hour | same |
+| Comments | 5 per reader per 10 minutes | `COMMENT_RATE_LIMIT` in `src/lib/comments.ts` |
+
+The client IP comes from the `x-forwarded-for` header, which Vercel sets. Session reads are not limited, so viewing pages never writes to the database. A blocked attempt gets HTTP 429 and a "Too many attempts" message.
+
+### My account (`/en/account`)
+
+Private (`noindex`, rendered per request, signed-out visitors are sent to sign in):
+
+- **Profile:** display name; profile photo (upload through the same Storage pipeline as article images: JPEG/PNG/WebP/AVIF up to 5 MB, real type checked from the file's bytes, stored under `avatars/{userId}/`; without Storage configured, readers get initials); preferred language.
+- **Password:** change it (current password required; other devices are signed out). Google-only accounts see that there's no password. **Sign-in methods** lists email and/or Google.
+- **My comments:** the reader's latest 50 comments with their status (Waiting for approval, Published, Not approved) and a link to the article.
+- **Delete account:** the reader types the confirmation word (and their password for email accounts). This deletes the user, their sessions, sign-in accounts and bookmarks, and their profile photo. Their comments stay, shown as "Deleted user" with no name or photo. The admin account can't be deleted here.
+
+### Bookmarks
+
+- A bookmark icon on every article card and **Save** in the article's toolbar. Signed out, clicking it opens a small prompt to sign in or sign up, which brings the reader back afterwards.
+- Toggling is instant (optimistic) and saved on the server; it reverts if the server refuses.
+- **One request per page:** all buttons on a page are checked in one call (`GET /api/reader/bookmarks?ids=…`), and signed-out visitors make none.
+- **My bookmarks** (`/en/account/bookmarks`): newest saved first, 12 per page, with Remove buttons. Only articles that are still published and available in that language are listed; bookmarks of unpublished articles are kept (they come back if the article is republished), just hidden.
+
+### Comments
+
+- Shown at the bottom of every article; the thread loads only when the reader scrolls near it, so the article page's JavaScript stays small. Comments belong to the article, not the language: the English and Urdu pages show the same discussion.
+- Approved comments, oldest first; replies one level deep. Each shows the name, avatar, a relative date ("5 minutes ago", in Urdu on Urdu pages) and a **Kabir Talks** badge on admin comments.
+- **Signed in:** a comment box (plain text, up to 2,000 characters, with a counter) and **Reply** on top-level comments. New comments are pending: only their author sees them, labelled "Waiting for approval". Admin comments are approved automatically.
+- **Edit** your own comment within 15 minutes; **Delete** it any time.
+- **Plain text only:** comments are stored as typed and always shown as escaped text. HTML and scripts appear literally, links aren't clickable, and invisible control/bidi-override characters are removed. Each comment lays out in its own direction, so Urdu, English and mixed comments read correctly on both sites.
+- **Signed out:** the comments and a "Sign in to join the conversation" prompt. **Blocked** readers and **closed** articles get a message instead of the box.
+
+### Email verification and "Forgot password?" (Phase 7)
+
+Both are built but switched off until Phase 7 connects an email sender:
+
+- Today: sign-up needs no email verification, and `/en/forgot-password` shows *Coming soon*.
+- The switch is `features.authEmailEnabled` = `RESEND_API_KEY` **and** `EMAIL_SENDER_CONNECTED` in `src/lib/features.ts` (currently `false`, so a key alone changes nothing).
+- **What Phase 7 needs to do:** implement `sendEmail()` in `src/server/email.ts` with Resend (plus a verified sender address), then set `EMAIL_SENDER_CONNECTED = true`. Everything else is in place: Better Auth's `requireEmailVerification` and `sendVerificationEmail`/`sendResetPassword` hooks, bilingual email texts (`email.*` in the dictionaries, sent in the reader's preferred language), the forgot-password form and the `/en/reset-password?token=…` page.
 
 ---
 
@@ -520,13 +603,16 @@ scripts/                    setup-storage.ts, verify-content.ts
 - Better Auth handles email/password and Google sign-in. Google only appears when both of its env vars are set.
 - Reading the site **never** requires login.
 - `user.role` is `admin` or `reader` and defaults to `reader`. It is declared `input: false`, so sign-up requests can't set it. (This was tested: a sign-up that sent `"role":"admin"` was stored as `reader`.)
-- `src/lib/auth-guards.ts` provides `getSession()`, `requireUser()`, and `requireAdmin()`. `requireAdmin()` redirects logged-out visitors to `/login` and gives signed-in non-admins a **404**.
+- `src/lib/auth-guards.ts` provides `getSession()`, `requireUser()`, and `requireAdmin()`. `requireAdmin()` redirects logged-out visitors to `/en/login` and gives signed-in non-admins a **404**.
+- Better Auth's generic `/update-user` endpoint is disabled; profile changes go through our own validated actions (`src/server/account-actions.ts`), which only ever touch `session.user.id`.
+- **Reader endpoints** (`/api/reader/*`, `/api/comments/*`, `src/server/reader-api.ts`) check the session on the server, take the user id only from the session (never from the request), accept writes only from our own origin with a JSON body, validate input with Zod and answer `private, no-store`. Another reader's comment answers 404, the same as a missing one.
+- **Comment moderation** actions (`src/server/comment-actions.ts`) each call `requireAdmin()`.
 - `/admin` is protected in three layers:
   1. `src/proxy.ts` redirects requests that have no session cookie. This is an optimistic check only.
   2. `admin/layout.tsx` calls `requireAdmin()` before rendering anything.
   3. Every admin page calls `requireAdmin()` again.
   4. Every admin server action (`src/server/*-actions.ts`, `uploads.ts`) and admin read (`src/server/articles.ts`, `categories.ts`) calls `requireAdmin()` itself. Server actions can be POSTed to *any* page URL, so the proxy and layout don't protect them.
-  5. The AI endpoint `POST /api/admin/ai` calls `requireAdmin()` first: logged-out → redirect to `/login`, readers → 404. Only then does it check that AI is configured, validate the input (Zod), and apply the rate limit.
+  5. The AI endpoint `POST /api/admin/ai` calls `requireAdmin()` first: logged-out → redirect to `/en/login`, readers → 404. Only then does it check that AI is configured, validate the input (Zod), and apply the rate limit.
 
   **Rule for later phases:** every admin server action and route handler must call `requireAdmin()` itself. Hiding a link is never enough.
 
@@ -564,9 +650,9 @@ All colours and fonts are CSS variables in `src/app/globals.css`, exposed as Tai
 
 | Area | Tables |
 | --- | --- |
-| Auth | `user` (+ `role`), `session`, `account`, `verification` |
+| Auth | `user` (+ `role`, `preferred_locale`, `commenting_blocked`), `session`, `account`, `verification`, `rate_limit` |
 | Content | `categories`, `articles`, `tags`, `article_tags` |
-| Readers | `bookmarks`, `comments` (threaded via `parent_id`, moderated via `status`) |
+| Readers | `bookmarks`, `comments` (threaded via `parent_id`, moderated via `status`, `deleted_at` placeholder, `edited_at`) |
 | AI | `ai_summaries` (unique per article + locale = generate once, cache) |
 | Growth | `newsletter_subscribers`, `ad_slots`, `article_views` (daily counter) |
 
@@ -574,6 +660,7 @@ Integrity rules:
 
 - Deleting a category that still has articles is **blocked** (`ON DELETE RESTRICT`). Reassign the articles first.
 - Deleting a user who authored articles is blocked too.
+- Deleting a reader removes their sessions, accounts and bookmarks (`CASCADE`) but keeps their comments with `user_id` set to `NULL` ("Deleted user").
 - Deleting an article cascades to its tags, bookmarks, comments, summaries, and views.
 - Every article must have at least one title (`title_en` or `title_ur`).
 - A `PUBLISHED` article must have `published_at`.
@@ -587,7 +674,7 @@ Integrity rules:
 2. **Admin core** (done): Tiptap editor, articles, categories, image uploads (Supabase Storage), publish + share screen, preview
 3. **Admin AI** (done): prompt-to-draft, English ⇄ Urdu translation, headline/excerpt/SEO/tag/slug suggestions, selected-text edits, AI review safeguard (Gemini, with a mock mode for development). Gated by `features.aiEnabled`
 4. **Public site** (done): homepage, section, article, tag, search and About pages; one-language articles; share buttons and link-preview metadata with generated share images (incl. Urdu); static pages that update as soon as you publish
-5. **Reader accounts:** profiles, bookmarks, comments with moderation
+5. **Reader accounts** (done): sign-up/sign-in (email, Google when configured), profiles, bookmarks, moderated comments, database-backed rate limits; email verification and password reset built for Phase 7
 6. **Reader AI:** summaries (cached in `ai_summaries`), "ask this article" chat, text-to-speech
 7. **Growth and launch:** newsletter (gated by `features.newsletterEnabled`), ads (`ad_slots`), SEO, analytics (`article_views`), Vercel deployment with a custom domain
 
@@ -611,4 +698,7 @@ Integrity rules:
 - **WhatsApp/Facebook still show an old preview.** They cache previews per URL. Use Facebook's Sharing Debugger → *Scrape Again* (see *How to test link previews*).
 - **`next build` fails reading the database.** The build prerenders published articles, so `DATABASE_URL` must work at build time (on Vercel: set it for the build environment too).
 - **Local testing with PGlite: `unnamed prepared statement does not exist`.** PGlite is a single Postgres backend and can't run queries from several connections at once. Set `DATABASE_POOL_MAX=1` for the dev server. Real Postgres/Supabase doesn't need this.
+- **"Too many attempts" when signing in.** The per-IP limit (10 sign-ins per 5 minutes) was hit; wait five minutes. In local testing every browser shares one IP, so repeated sign-ins hit it quickly; delete the rows in `rate_limit` whose key contains `|/sign-` to reset it.
+- **The avatar menu or bookmark icons don't update after signing in/out.** They read the session in the browser; reload the page. If it persists, check that `/api/auth/get-session` answers (cookies blocked?).
+- **Local testing with PGlite: random `bind message supplies N parameters` errors in tests.** PGlite mixes up queries when two connections query at once (e.g. a test script's own connection while the app renders). Let pages finish loading before a test touches the database. Real Postgres/Supabase doesn't need this.
 - **Local testing with PGlite: `next build` fails with `bind message supplies N parameters`.** The build renders pages in parallel workers, and PGlite (one backend) mixes up their queries. Build against PGlite with one worker (temporarily add `cpus: 1` under `experimental` in `next.config.ts` and don't commit it). Real Postgres/Supabase doesn't need this.
