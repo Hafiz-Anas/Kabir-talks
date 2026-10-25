@@ -8,9 +8,10 @@ import { useSession } from "@/lib/auth-client";
  * Bookmark state for every button on the page, loaded in the browser.
  *
  * Buttons register their article id when they mount; ids registered in the
- * same tick are fetched together, so a page of cards costs ONE request
- * (GET /api/reader/bookmarks?ids=…). Cards added later (homepage "Load
- * more") are fetched as one more batch. Toggling is optimistic: the icon
+ * same tick are fetched together, so for a signed-in reader a page of cards
+ * costs ONE request (GET /api/reader/bookmarks?ids=…), and for a signed-out
+ * visitor none. Cards added later (homepage "Load more") are fetched as one
+ * more batch. Toggling is optimistic: the icon
  * flips at once and reverts if the server refuses.
  *
  * The state follows the signed-in user: on sign-in/out (seen through
@@ -42,6 +43,22 @@ function subscribe(listener: () => void) {
 function request(articleId: string) {
   if (known.has(articleId) || queue.has(articleId)) return;
   queue.add(articleId);
+  schedule();
+}
+
+/**
+ * Waits for the session (read once by the header): signed-out visitors —
+ * most readers — never call the bookmarks endpoint at all.
+ */
+function schedule() {
+  if (currentUser === undefined || !queue.size) return;
+  if (currentUser === null) {
+    signedIn = false;
+    queue.forEach((id) => known.add(id));
+    queue = new Set();
+    emit();
+    return;
+  }
   timer ??= setTimeout(flush, 0);
 }
 
@@ -66,17 +83,18 @@ async function flush() {
 }
 
 function syncUser(userId: string | null) {
-  if (currentUser === undefined || currentUser === userId) {
-    currentUser = userId;
-    return;
-  }
+  if (currentUser === userId) return;
+  const changed = currentUser !== undefined;
   currentUser = userId;
-  const ids = [...known, ...queue];
-  signedIn = null;
-  saved = new Set();
-  known = new Set();
-  ids.forEach(request);
-  emit();
+  if (changed) {
+    // Another account (or signed out): forget everything and ask again.
+    queue = new Set([...known, ...queue]);
+    signedIn = null;
+    saved = new Set();
+    known = new Set();
+    emit();
+  }
+  schedule();
 }
 
 export type ToggleResult = "ok" | "signed-out" | "error";
