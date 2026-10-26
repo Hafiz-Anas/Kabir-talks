@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth-guards";
 import type { ArticleDoc } from "@/lib/content/document";
 import { env } from "@/lib/env";
 import { features } from "@/lib/features";
+import { getReaderAiStatus } from "@/server/ai/status";
 import { getArticleForEdit, getEditorOptions } from "@/server/articles";
 import { imagePrefix } from "@/server/storage";
 
@@ -27,6 +28,7 @@ async function EditArticle({ params }: { params: PageProps<"/admin/articles/[id]
   const { id } = await params;
   const [article, options] = await Promise.all([getArticleForEdit(id), getEditorOptions()]);
   if (!article) notFound();
+  const readerAi = features.aiEnabled ? await getReaderAiStatus(article.id) : null;
 
   return (
     <ArticleEditor
@@ -61,6 +63,7 @@ async function EditArticle({ params }: { params: PageProps<"/admin/articles/[id]
       imagePrefix={imagePrefix()}
       siteUrl={env.NEXT_PUBLIC_SITE_URL}
       aiEnabled={features.aiEnabled}
+      readerAi={readerAi}
     />
   );
 }

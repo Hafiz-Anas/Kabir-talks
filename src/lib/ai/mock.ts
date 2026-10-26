@@ -230,7 +230,41 @@ function respond(request: AiRequest): string {
     }
     case "suggest-slug":
       return JSON.stringify({ slug: slugify(str(input.title)).split("-").slice(0, 5).join("-") || "mock-article" });
+    case "summary":
+      return mockSummary(str(input.text), locale, wrong);
+    case "ask":
+      return "";
   }
+}
+
+/** Sentences of the article body (the title line is skipped). */
+function sentences(text: string) {
+  const body = text.split("\n").slice(1).join(" ");
+  return body
+    .replace(/\s+/g, " ")
+    .split(/(?<=[.!?۔؟])\s+/)
+    .map((s) => s.replace(/\[\[mock:[^\]]*\]\]/g, "").trim())
+    .filter((s) => s.length > 8);
+}
+
+const SUMMARY_QUESTIONS: Record<Locale, string[]> = {
+  en: ["What is the main development?", "Who is involved?", "What happens next?"],
+  ur: ["اس خبر میں سب سے اہم بات کیا ہے؟", "اس معاملے میں کون شامل ہے؟", "آگے کیا ہوگا؟"],
+};
+
+function mockSummary(text: string, locale: Locale, wrong: "hindi" | "roman" | null) {
+  if (wrong && locale === "ur") {
+    return JSON.stringify({ bullets: WRONG_SCRIPT[wrong].split(/(?<=[।.])\s+/), questions: ["क्या हुआ?", "कौन?", "आगे क्या?"] });
+  }
+  const picked = sentences(text)
+    .slice(0, 4)
+    .map((s) => firstSentence(s, 160));
+  const fallback =
+    locale === "ur"
+      ? ["مضمون کا پہلا اہم نکتہ۔", "مضمون کا دوسرا اہم نکتہ۔", "مضمون کا تیسرا اہم نکتہ۔"]
+      : ["The first key point.", "The second key point.", "The third key point."];
+  const bullets = [...picked, ...fallback].slice(0, Math.max(3, picked.length));
+  return JSON.stringify({ bullets, questions: SUMMARY_QUESTIONS[locale] });
 }
 
 function sleep(ms: number, signal: AbortSignal) {

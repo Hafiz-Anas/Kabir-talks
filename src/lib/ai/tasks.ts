@@ -4,6 +4,7 @@ import { LIMITS } from "@/lib/articles/rules";
 import type { ArticleDoc } from "@/lib/content/document";
 
 import type { AiErrorCode } from "./errors";
+import type { ReaderAiStatus } from "./reader";
 import { DRAFT_LENGTHS, DRAFT_TONES, EDIT_ACTIONS, type EditAction } from "./prompts";
 
 /**
@@ -58,6 +59,9 @@ export const aiTaskSchema = z.discriminatedUnion("task", [
     /** The selected content as a Tiptap doc; re-sanitized on the server. */
     selection: z.unknown(),
   }),
+  // Phase 6: reader AI controls in the editor side panel (work on the SAVED article).
+  z.object({ task: z.literal("reader-ai-status"), articleId: z.uuid() }),
+  z.object({ task: z.literal("summary"), articleId: z.uuid(), locale }),
 ]);
 
 export type SuggestKind = Extract<z.output<typeof aiTaskSchema>, { task: "suggest" }>["kind"];
@@ -103,6 +107,9 @@ export type AiResults = {
     doc: ArticleDoc;
     removed: string[];
   };
+  "reader-ai-status": ReaderAiStatus;
+  /** The regenerated summary is in the returned status. */
+  summary: ReaderAiStatus;
 };
 
 export type AiEvent =

@@ -1,11 +1,14 @@
-import { date, integer, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { date, integer, jsonb, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 import { createdAt, localeEnum } from "./_shared";
 import { articles } from "./content";
 
 /**
  * Cached AI summaries: generated once per article + locale.
- * Regenerate when articles.updatedAt is newer than sourceUpdatedAt.
+ * Regenerate when articles.updatedAt is newer than sourceUpdatedAt AND the
+ * text changed (sourceHash), so edits to tags or SEO fields cost nothing.
+ * Phase 6: `summary` holds the 3-5 bullet points, one per line, as plain
+ * text; `questions` holds 3 suggested starter questions for "Ask".
  */
 export const aiSummaries = pgTable(
   "ai_summaries",
@@ -16,11 +19,25 @@ export const aiSummaries = pgTable(
       .references(() => articles.id, { onDelete: "cascade" }),
     locale: localeEnum("locale").notNull(),
     summary: text("summary").notNull(),
+    questions: jsonb("questions").$type<string[]>().default([]).notNull(),
     sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }).notNull(),
+    // SHA-256 of the title + plain text the summary was made from.
+    sourceHash: text("source_hash").default("").notNull(),
     createdAt: createdAt(),
   },
   (table) => [unique("ai_summaries_article_id_locale_unique").on(table.articleId, table.locale)],
 );
+
+/**
+ * Phase 6: short leases so one slow AI job (a summary, an audio file) runs
+ * once even when many readers or several server instances ask at the same
+ * moment. Keys: "summary:{articleId}:{locale}", "audio:{articleId}:{locale}".
+ * A lease older than its timeout is taken over (crashed instance).
+ */
+export const aiJobs = pgTable("ai_jobs", {
+  key: text("key").primaryKey(),
+  startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 /** Every billable feature. "admin" covers all editor AI (Phase 3). */
 export const AI_FEATURES = ["admin", "summary", "ask", "listen"] as const;

@@ -17,7 +17,10 @@ export type AiCallKind =
   | "suggest-seo-description"
   | "suggest-tags"
   | "suggest-slug"
-  | "edit";
+  | "edit"
+  // Phase 6 reader AI
+  | "summary"
+  | "ask";
 
 export type AiRequest = {
   kind: AiCallKind;

@@ -50,6 +50,13 @@
       "when": 1792995442097,
       "tag": "0006_ai_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792996031588,
+      "tag": "0007_ai_summaries_cache",
+      "breakpoints": true
     }
   ]
 }

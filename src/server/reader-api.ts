@@ -2,12 +2,15 @@ import "server-only";
 
 import type { z } from "zod";
 
+import { AiError } from "@/lib/ai/errors";
+import type { ReaderAiError } from "@/lib/ai/reader";
 import { auth } from "@/lib/auth";
 import type { CommentErrorCode } from "@/lib/comments";
 import { env } from "@/lib/env";
 
 /**
- * Helpers for the per-reader route handlers (/api/reader/*, /api/comments/*).
+ * Helpers for the per-reader route handlers (/api/reader/*, /api/comments/*,
+ * and the Phase 6 reader AI endpoints /api/ai/*).
  * These are what keep public pages static: bookmark state, comments and the
  * signed-in user load in the browser through them.
  *
@@ -73,4 +76,26 @@ export const COMMENT_ERROR_STATUS: Record<CommentErrorCode, number> = {
 export function bodyError(error: z.ZodError): CommentErrorCode {
   const message = error.issues.find((issue) => issue.path[0] === "body")?.message;
   return message === "empty" || message === "too_long" ? message : "invalid";
+}
+
+/** The visitor's IP for per-IP limits (Vercel sets x-forwarded-for; the first entry is the client). */
+export function clientIp(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwarded || request.headers.get("x-real-ip")?.trim() || "unknown";
+}
+
+/** Reader AI (Phase 6): an AiError → the error code and status the panels understand. */
+export function readerAiFailure(error: unknown): { error: ReaderAiError; status: number } {
+  if (!(error instanceof AiError)) return { error: "error", status: 500 };
+  switch (error.code) {
+    case "daily_limit":
+    case "quota":
+      return { error: "resting", status: 429 };
+    case "rate_limited":
+      return { error: "busy", status: 429 };
+    case "not_configured":
+      return { error: "not_configured", status: 503 };
+    default:
+      return { error: "unavailable", status: 503 };
+  }
 }

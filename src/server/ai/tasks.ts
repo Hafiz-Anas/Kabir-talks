@@ -13,6 +13,8 @@ import { isValidSlug, slugify } from "@/lib/articles/slug";
 import { type ArticleDoc, docToPlainText, sanitizeDoc } from "@/lib/content/document";
 
 import { imagePrefix } from "../storage";
+import { getReaderAiStatus } from "./status";
+import { generateSummary, loadArticleSource } from "./summaries";
 import { existingTagNames, matchTags } from "./tags";
 
 /**
@@ -221,6 +223,20 @@ export const handlers: Handlers = {
     const converted = markdownToDoc(output, { source: "ai", blocks, imagePrefix: prefix });
     if (!converted.doc) throw new AiError("invalid_output");
     return { doc: converted.doc, removed: converted.removed };
+  },
+
+  async "reader-ai-status"(input) {
+    return getReaderAiStatus(input.articleId);
+  },
+
+  /** Regenerates one language's summary from the SAVED article (any status), even if it is current. */
+  async summary(input, ctx) {
+    const source = await loadArticleSource(input.articleId, input.locale, { publishedOnly: false });
+    if (!source) {
+      throw new AiError("bad_request", `Add a ${LANGUAGE_NAME[input.locale]} title and body, and save, before generating its summary.`);
+    }
+    await generateSummary(source, { rateKey: `admin:${ctx.userId}`, force: true, waitMs: 60_000 });
+    return getReaderAiStatus(input.articleId);
   },
 };
 

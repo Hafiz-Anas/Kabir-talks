@@ -3,6 +3,7 @@
 import { randomBytes } from "node:crypto";
 
 import { and, eq, inArray, ne } from "drizzle-orm";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { db } from "@/db";
@@ -17,6 +18,7 @@ import { env } from "@/lib/env";
 import type { Locale } from "@/i18n/config";
 import { absoluteUrl, articlePath } from "@/lib/urls";
 
+import { refreshReaderAi } from "./ai/background";
 import { revalidateArticle } from "./revalidate";
 import { imagePrefix } from "./storage";
 
@@ -227,6 +229,8 @@ export async function saveArticle(input: unknown): Promise<SaveArticleResult> {
       existing ? { categorySlug: previousCategory?.slug ?? category.slug, slug: existing.slug } : null,
     );
   }
+  // Phase 6: refresh reader AI for the live text after the response; never blocks or fails the save.
+  if (saved.status === "PUBLISHED") after(() => refreshReaderAi(saved.id));
 
   return {
     ok: true,
@@ -299,6 +303,8 @@ export async function publishArticle(input: { id: string; updatePublishedAt?: bo
     .returning();
 
   revalidateArticle(article.id, { categorySlug, slug: article.slug });
+  // Phase 6: summaries for each available language, generated after the response.
+  after(() => refreshReaderAi(article.id));
 
   const locales = completedLocales(readiness);
   const primary = locales[0] ?? "en";

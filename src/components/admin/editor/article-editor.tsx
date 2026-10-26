@@ -7,8 +7,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 
 import { AiSuggest } from "@/components/admin/ai/ai-suggest";
+import { ReaderAiPanel } from "@/components/admin/ai/reader-ai-panel";
 import { TranslateButton } from "@/components/admin/ai/translate-button";
 import { type DraftApplyMode, WritePanel } from "@/components/admin/ai/write-panel";
+import type { ReaderAiStatus } from "@/lib/ai/reader";
 import type { AiResults, SuggestKind, TranslatableField } from "@/lib/ai/tasks";
 import { DeleteArticleDialog } from "@/components/admin/article-row-actions";
 import { Checklist, PublishBlockedDialog } from "@/components/admin/publish-dialogs";
@@ -103,6 +105,8 @@ type Props = {
   siteUrl: string;
   /** From features.aiEnabled (server). When false, AI buttons show "Coming soon". */
   aiEnabled: boolean;
+  /** Phase 6: summary state for the saved article (null for a new article or without AI). */
+  readerAi?: ReaderAiStatus | null;
 };
 
 type Locale = "en" | "ur";
@@ -114,7 +118,16 @@ const FIELD_KEYS = {
 const selectClass =
   "h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&>option]:bg-obsidian";
 
-export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled, imagePrefix, siteUrl, aiEnabled }: Props) {
+export function ArticleEditor({
+  initial,
+  categories,
+  tagOptions,
+  uploadsEnabled,
+  imagePrefix,
+  siteUrl,
+  aiEnabled,
+  readerAi = null,
+}: Props) {
   const router = useRouter();
   const [form, setForm] = useState<Form>(() => {
     const { aiReviewPending, ...rest } = initial;
@@ -732,6 +745,10 @@ export function ArticleEditor({ initial, categories, tagOptions, uploadsEnabled,
               })
             }
           />
+
+          <Panel title="Reader AI">
+            <ReaderAiPanel articleId={id ?? null} aiEnabled={aiEnabled} initial={readerAi} savedKey={lastSaved} dirty={dirty} />
+          </Panel>
         </aside>
       </div>
 
