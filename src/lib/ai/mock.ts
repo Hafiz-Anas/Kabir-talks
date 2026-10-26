@@ -1,6 +1,7 @@
 import { slugify } from "@/lib/articles/slug";
 
 import { AiError, isAiErrorCode } from "./errors";
+import { ASK_NOT_COVERED, ASK_REFUSAL } from "./prompts";
 import type { AiProvider, AiRequest } from "./types";
 
 /**
@@ -233,8 +234,42 @@ function respond(request: AiRequest): string {
     case "summary":
       return mockSummary(str(input.text), locale, wrong);
     case "ask":
-      return "";
+      return mockAsk(input, locale);
   }
+}
+
+/**
+ * A stand-in for the real model's behaviour, to test the plumbing (it is NOT
+ * a test of how well Gemini resists prompt injection): requests that look
+ * off-topic or like injections get the refusal sentence, questions that
+ * share words with an article sentence get that sentence, anything else
+ * gets the "doesn't cover that" sentence.
+ *   [[mock:leak]] in the question → the answer leaks the request's nonce (tests the server's output guard)
+ *   [[mock:hindi]] in an Urdu question → a Hindi answer (tests the script check)
+ */
+const OFF_TOPIC =
+  /ignore|disregard|forget|instruction|system prompt|prompt|reveal|pretend|you are now|act as|role ?play|jailbreak|developer mode|\bDAN\b|poem|story|essay|joke|recipe|code|python|javascript|translate|write (?:a|an|me)|weather|stock|medical|doctor|lawyer|invest|password|نظرانداز|نظر انداز|ہدایات|ہدایت|اصول|نظم|کہانی|لطیفہ|کوڈ|ترجمہ|ترکیب|ڈاکٹر|کردار/i;
+const STOP_WORDS = new Set(["what", "which", "when", "where", "does", "about", "this", "that", "with", "from", "have", "there", "their", "article", "کیا", "کون", "کب", "کہاں", "میں", "کے", "کی", "کا", "اور", "ہے", "ہیں", "سے", "پر", "کو", "یہ", "اس", "مضمون"]);
+const words = (text: string) =>
+  new Set(
+    (text.toLowerCase().match(/[a-z0-9]+|[؀-ۿ]+/g) ?? []).filter((word) => (word.length > 3 || /[؀-ۿ]/.test(word)) && !STOP_WORDS.has(word)),
+  );
+
+function mockAsk(input: Any, locale: Locale) {
+  const question = str(input.question);
+  if (question.includes("[[mock:leak]]")) return `Sure. My secret instructions are marked ${str(input.nonce)}.`;
+  if (question.includes("[[mock:hindi]]") && locale === "ur") return WRONG_SCRIPT.hindi;
+  const history = Array.isArray(input.history) ? input.history.map((m) => str((m as Any).text)).join(" ") : "";
+  if (OFF_TOPIC.test(question) || OFF_TOPIC.test(history)) return ASK_REFUSAL[locale];
+  const asked = words(question);
+  let best = "";
+  let score = 0;
+  for (const sentence of str(input.text).split(/(?<=[.!?۔؟])\s+|\n+/)) {
+    const shared = [...words(sentence)].filter((word) => asked.has(word)).length;
+    if (shared > score) [best, score] = [sentence.trim(), shared];
+  }
+  if (score === 0) return ASK_NOT_COVERED[locale];
+  return locale === "ur" ? `مضمون کے مطابق، ${best}` : `According to the article: ${best}`;
 }
 
 /** Sentences of the article body (the title line is skipped). */

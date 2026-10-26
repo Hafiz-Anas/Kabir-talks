@@ -35,7 +35,7 @@ export function ReaderTools({ articleId, locale, dict }: { articleId: string; lo
         locale={locale}
         labels={readerAiLabels(dict)}
         bookmark={bookmark}
-        pending={[comingSoon(dict.article.ask, MessageCircleQuestion), comingSoon(dict.article.listen, Headphones)]}
+        pending={comingSoon(dict.article.listen, Headphones)}
       />
     );
   }

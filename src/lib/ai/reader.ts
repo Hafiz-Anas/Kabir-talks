@@ -67,7 +67,12 @@ export type AskMessage = z.infer<typeof askRequestSchema>["history"][number];
 /** Ask streams NDJSON events, like the admin endpoint. */
 export type AskEvent =
   | { type: "delta"; text: string }
-  | { type: "done"; refused?: boolean }
+  /**
+   * refused: the answer is the off-topic refusal; notCovered: "this article
+   * doesn't cover that"; replace: show this text INSTEAD of what streamed
+   * (the server's output guard stopped the answer).
+   */
+  | { type: "done"; refused?: boolean; notCovered?: boolean; replace?: string }
   | { type: "error"; error: ReaderAiError };
 
 /** Normalises a question: collapses whitespace. Length is checked after this. */
