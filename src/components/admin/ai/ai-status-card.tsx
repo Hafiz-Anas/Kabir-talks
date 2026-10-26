@@ -6,12 +6,23 @@ import { useState } from "react";
 import { ComingSoon } from "@/components/coming-soon";
 import { Button } from "@/components/ui/button";
 import type { AiStatus } from "@/lib/ai/config";
+import type { AiUsageToday } from "@/server/ai/limits";
 
 import { AiErrorNotice, AiWorking } from "./ai-notice";
 import { useAiTask } from "./use-ai-task";
 
-/** Dashboard card: Not configured / Mock mode / Gemini (model), with a one-request connection test. */
-export function AiStatusCard({ status }: { status: AiStatus }) {
+const FEATURE_LABELS: Record<keyof AiUsageToday["byFeature"], string> = {
+  admin: "Editor AI (admin)",
+  summary: "Summaries",
+  ask: "Ask this article",
+  listen: "Listen (audio)",
+};
+
+/**
+ * Dashboard card: Not configured / Mock mode / Gemini (model), with a
+ * one-request connection test, and today's usage against the daily cap.
+ */
+export function AiStatusCard({ status, usage }: { status: AiStatus; usage: AiUsageToday }) {
   const task = useAiTask<"ping">();
   const [tested, setTested] = useState(false);
   const result = task.state.status === "done" ? task.state.result : null;
@@ -57,6 +68,8 @@ export function AiStatusCard({ status }: { status: AiStatus }) {
         <p className="text-sm text-grey">A key is set. Use Test connection to check that it works (one tiny request).</p>
       )}
 
+      {status.mode !== "off" && <UsageToday usage={usage} />}
+
       {status.mode !== "off" && (
         <div className="space-y-2">
           {task.state.status === "running" ? (
@@ -85,5 +98,50 @@ export function AiStatusCard({ status }: { status: AiStatus }) {
         </div>
       )}
     </section>
+  );
+}
+
+function UsageToday({ usage }: { usage: AiUsageToday }) {
+  const share = usage.cap > 0 ? Math.min(100, Math.round((usage.total / usage.cap) * 100)) : 100;
+  const hours = Math.floor(usage.resetsInSeconds / 3600);
+  const minutes = Math.floor((usage.resetsInSeconds % 3600) / 60);
+  const resting = usage.total >= usage.cap;
+
+  return (
+    <div data-testid="ai-usage" className="space-y-3 border-t border-border pt-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+        <h3 className="text-ivory">Today’s AI usage</h3>
+        <span className={resting ? "text-destructive" : "text-grey"}>
+          <span data-testid="ai-usage-total" className="text-ivory tabular-nums">
+            {usage.total}
+          </span>{" "}
+          of {usage.cap} model calls{resting ? " — resting until midnight" : ""}
+        </span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label="Share of today’s AI cap used"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={share}
+        className="h-1.5 overflow-hidden rounded-full bg-obsidian-raised"
+      >
+        <div className={resting ? "h-full bg-destructive" : "h-full bg-gold"} style={{ inlineSize: `${share}%` }} />
+      </div>
+      <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
+        {(Object.keys(FEATURE_LABELS) as (keyof typeof FEATURE_LABELS)[]).map((feature) => (
+          <li key={feature} className="flex justify-between gap-2">
+            <span className="text-grey">{FEATURE_LABELS[feature]}</span>
+            <span data-testid={`ai-usage-${feature}`} className="text-ivory tabular-nums">
+              {usage.byFeature[feature]}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-grey-dim">
+        Daily cap AI_DAILY_LIMIT={usage.cap} (all features together); each reader may ask {usage.readerAskPerDay} questions a
+        day (READER_AI_ASK_PER_DAY). Resets at midnight Pakistan time, in {hours}h {minutes}m.
+      </p>
+    </div>
   );
 }

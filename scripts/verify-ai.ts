@@ -6,7 +6,7 @@ import { AiError } from "../src/lib/ai/errors";
 import { parseJsonOutput } from "../src/lib/ai/json";
 import { docToMarkdown, markdownToDoc, placeholdersIn, splitMarkdown, stripHtml } from "../src/lib/ai/markdown";
 import { createMockProvider, mockTranslate } from "../src/lib/ai/mock";
-import { createRateLimiter } from "../src/lib/ai/rate-limit";
+import { aiDay, secondsUntilReset } from "../src/lib/ai/day";
 import { isExpectedScript } from "../src/lib/ai/script";
 import { type ArticleDoc, type BlockNode, sanitizeDoc } from "../src/lib/content/document";
 import { renderDocToHtml } from "../src/lib/content/render";
@@ -232,14 +232,12 @@ async function main() {
     );
   });
 
-  await t("rate limiter: N per minute per user, then a wait time", () => {
-    let now = 0;
-    const limiter = createRateLimiter(3, () => now);
-    assert.deepEqual([limiter.take("a"), limiter.take("a"), limiter.take("a")], [0, 0, 0]);
-    assert.ok(limiter.take("a") > 0);
-    assert.equal(limiter.take("b"), 0, "per user");
-    now = 61_000;
-    assert.equal(limiter.take("a"), 0, "window slides");
+  await t("AI day: Pakistan date (UTC+5) and seconds until its midnight", () => {
+    const at = (iso: string) => Date.parse(iso);
+    assert.equal(aiDay(at("2026-10-26T18:59:59Z")), "2026-10-26");
+    assert.equal(aiDay(at("2026-10-26T19:00:00Z")), "2026-10-27", "midnight PKT is 19:00 UTC");
+    assert.equal(secondsUntilReset(at("2026-10-26T18:59:00Z")), 60);
+    assert.equal(secondsUntilReset(at("2026-10-26T19:00:00Z")), 86_400);
   });
 
   console.log(`\n${passed} test groups passed`);

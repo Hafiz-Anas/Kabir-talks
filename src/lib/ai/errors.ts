@@ -7,6 +7,7 @@ export const AI_ERROR_CODES = [
   "not_configured", // no usable provider (no key, or mock in production)
   "config", // key rejected or model not found
   "rate_limited", // too many requests (ours or the provider's)
+  "daily_limit", // the site's global daily AI cap (AI_DAILY_LIMIT) is used up
   "quota", // provider quota / billing exhausted
   "safety", // the provider blocked the prompt or the response
   "invalid_output", // response unusable (bad JSON, wrong language, empty)
@@ -24,6 +25,7 @@ export const AI_ERROR_MESSAGES: Record<AiErrorCode, string> = {
   not_configured: "AI isn't configured on this site yet.",
   config: "The AI provider rejected the configuration. Check GEMINI_API_KEY and GEMINI_MODEL.",
   rate_limited: "Too many AI requests in a short time. Wait a moment, then try again.",
+  daily_limit: "The site's daily AI limit has been reached. AI features are resting until midnight (Pakistan time), or raise AI_DAILY_LIMIT.",
   quota: "The AI quota for this API key is used up. Try again later or check your Google AI Studio plan.",
   safety: "The AI declined this request for safety reasons. Try rephrasing it.",
   invalid_output: "The AI returned something we couldn't use. Please try again.",
@@ -37,7 +39,7 @@ export const AI_ERROR_MESSAGES: Record<AiErrorCode, string> = {
 
 /** Codes where pressing Retry can plausibly help. */
 export function isRetryable(code: AiErrorCode) {
-  return !["not_configured", "config", "bad_request"].includes(code);
+  return !["not_configured", "config", "bad_request", "daily_limit"].includes(code);
 }
 
 export class AiError extends Error {

@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth-guards";
 import { features } from "@/lib/features";
 import { formatDateTime } from "@/lib/format";
+import { getAiUsageToday } from "@/server/ai/limits";
 import { getDashboardData } from "@/server/articles";
 import { pendingCommentCount } from "@/server/comments";
 
@@ -38,7 +39,11 @@ export default function AdminDashboardPage() {
 
 async function Dashboard() {
   await requireAdmin();
-  const [{ stats, recent }, pendingComments] = await Promise.all([getDashboardData(), pendingCommentCount()]);
+  const [{ stats, recent }, pendingComments, aiUsage] = await Promise.all([
+    getDashboardData(),
+    pendingCommentCount(),
+    getAiUsageToday(),
+  ]);
 
   const cards = [
     { label: "Total articles", value: stats.total, href: "/admin/articles" },
@@ -112,7 +117,7 @@ async function Dashboard() {
         )}
       </section>
 
-      <AiStatusCard status={aiStatus} />
+      <AiStatusCard status={aiStatus} usage={aiUsage} />
 
       <section aria-labelledby="flags" className="space-y-4">
         <h2 id="flags" className="text-xl text-ivory">

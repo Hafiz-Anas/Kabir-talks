@@ -78,6 +78,18 @@ const serverSchema = z.object({
     z.coerce.number().int().min(1).max(10_000).optional(),
   ),
 
+  // Phase 6 cost guards (database-backed, so they hold across serverless instances).
+  // Global cap on AI model calls per day, all features together (default 1000).
+  AI_DAILY_LIMIT: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.coerce.number().int().min(0).max(1_000_000).optional(),
+  ),
+  // "Ask this article" questions per signed-in reader per day (default 20).
+  READER_AI_ASK_PER_DAY: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.coerce.number().int().min(0).max(10_000).optional(),
+  ),
+
   // Newsletter email provider (optional, Phase 7)
   RESEND_API_KEY: optional,
 });

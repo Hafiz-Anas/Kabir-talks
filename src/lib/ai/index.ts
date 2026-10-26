@@ -2,21 +2,24 @@ import "server-only";
 
 import { z } from "zod";
 
+import type { AiFeature } from "@/db/schema";
 import { env } from "@/lib/env";
+import { reserveDailyCall, takeMinuteLimit } from "@/server/ai/limits";
 
 import { AI_CALLS_PER_MINUTE, aiStatus } from "./config";
+import { secondsUntilReset } from "./day";
 import { AiError } from "./errors";
 import { createGeminiProvider } from "./gemini";
 import { parseJsonOutput } from "./json";
 import { createMockProvider } from "./mock";
-import { createRateLimiter } from "./rate-limit";
 import type { AiProvider, AiRequest, AiTextResult } from "./types";
 
 /**
- * The only entry point for model calls (admin AI now, reader AI in Phase 6).
- * Adds to every call: a timeout, Stop support (abort signal), a per-user
- * rate limit, typed errors, Zod-validated JSON, and logging that records
- * counts and error codes only, never prompts or article content.
+ * The only entry point for model calls (admin AI and reader AI). Adds to
+ * every call: a timeout, Stop support (abort signal), a per-minute limit per
+ * user, the global daily cap (both database-backed, src/server/ai/limits.ts),
+ * typed errors, Zod-validated JSON, and logging that records counts and
+ * error codes only, never prompts, questions, answers or article content.
  */
 
 export { aiStatus } from "./config";
@@ -33,16 +36,23 @@ export function getAiProvider(): AiProvider | null {
 }
 
 export type CallOptions = {
-  /** Rate-limit key (the admin's user id). */
-  userId: string;
-  /** Aborted when the admin presses Stop (the HTTP request is cancelled). */
+  /**
+   * Who the per-minute limit applies to: "admin:{id}", "reader:{id}" or
+   * "ip:{ip}". Null for background jobs (publish-time summaries), which only
+   * count against the daily cap.
+   */
+  rateKey: string | null;
+  /** Calls per minute for rateKey (default AI_CALLS_PER_MINUTE, the admin limit). */
+  perMinute?: number;
+  /** Counted against the global daily cap, per feature. */
+  feature: AiFeature;
+  /** Aborted when the user presses Stop (the HTTP request is cancelled). */
   signal?: AbortSignal;
   timeoutMs: number;
 };
 
 type Request = Omit<AiRequest, "signal">;
 
-const limiter = createRateLimiter(AI_CALLS_PER_MINUTE);
 const counts = new Map<string, number>();
 
 function log(kind: string, outcome: string, startedAt: number) {
@@ -53,19 +63,28 @@ function log(kind: string, outcome: string, startedAt: number) {
   else console.warn(line);
 }
 
-/** Sets up the provider, rate limit and combined abort signal for one call. */
-function begin(options: CallOptions) {
+/**
+ * Checks the limits (per minute first, so a burst can't eat the daily cap),
+ * then sets up the provider and the combined abort signal for one call.
+ */
+async function begin(options: CallOptions) {
   const ai = getAiProvider();
   if (!ai) throw new AiError("not_configured");
   if (options.signal?.aborted) throw new AiError("aborted");
 
-  const wait = limiter.take(options.userId);
-  if (wait > 0) {
-    throw new AiError(
-      "rate_limited",
-      `You've reached the limit of ${AI_CALLS_PER_MINUTE} AI requests per minute. Try again in ${wait}s.`,
-      { retryAfter: wait },
-    );
+  if (options.rateKey) {
+    const perMinute = options.perMinute ?? AI_CALLS_PER_MINUTE;
+    const { allowed, retryAfter } = await takeMinuteLimit(options.rateKey, perMinute);
+    if (!allowed) {
+      throw new AiError(
+        "rate_limited",
+        `You've reached the limit of ${perMinute} AI requests per minute. Try again in ${retryAfter}s.`,
+        { retryAfter },
+      );
+    }
+  }
+  if (!(await reserveDailyCall(options.feature))) {
+    throw new AiError("daily_limit", undefined, { retryAfter: secondsUntilReset() });
   }
 
   const controller = new AbortController();
@@ -84,9 +103,19 @@ function normalize(error: unknown, signal: AbortSignal): AiError {
   return error instanceof AiError ? error : new AiError("unknown", undefined, { cause: error });
 }
 
+/** Limit errors happen before the call starts: log them too. */
+async function started(kind: string, options: CallOptions, startedAt: number) {
+  try {
+    return await begin(options);
+  } catch (error) {
+    log(kind, error instanceof AiError ? error.code : "unknown", startedAt);
+    throw error;
+  }
+}
+
 export async function generateText(request: Request, options: CallOptions): Promise<AiTextResult> {
   const startedAt = Date.now();
-  const { ai, signal, end } = begin(options);
+  const { ai, signal, end } = await started(request.kind, options, startedAt);
   try {
     const result = await ai.generate({ ...request, signal });
     if (!result.text.trim()) throw new AiError("invalid_output", "The AI returned an empty response. Please try again.");
@@ -103,7 +132,7 @@ export async function generateText(request: Request, options: CallOptions): Prom
 
 export async function* streamText(request: Request, options: CallOptions): AsyncGenerator<string> {
   const startedAt = Date.now();
-  const { ai, signal, end } = begin(options);
+  const { ai, signal, end } = await started(request.kind, options, startedAt);
   try {
     for await (const delta of ai.stream({ ...request, signal })) {
       if (signal.aborted) throw signal.reason;

@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
-import { generateJson, generateText, getAiProvider, streamText } from "@/lib/ai";
+import { type CallOptions, generateJson, generateText, getAiProvider, streamText } from "@/lib/ai";
 import { AiError } from "@/lib/ai/errors";
 import { docToMarkdown, markdownToDoc, placeholder, placeholdersIn, splitMarkdown } from "@/lib/ai/markdown";
 import { LANGUAGE_NAME, prompts } from "@/lib/ai/prompts";
@@ -33,7 +33,12 @@ type Handlers = {
   [K in ParsedAiTask["task"]]: (input: Extract<ParsedAiTask, { task: K }>, ctx: TaskContext) => Promise<AiResults[K]>;
 };
 
-const call = (ctx: TaskContext, timeoutMs: number) => ({ userId: ctx.userId, signal: ctx.signal, timeoutMs });
+const call = (ctx: TaskContext, timeoutMs: number): CallOptions => ({
+  rateKey: `admin:${ctx.userId}`,
+  feature: "admin",
+  signal: ctx.signal,
+  timeoutMs,
+});
 
 /** Plain single-line text from the model: no Markdown, no tags, trimmed to a limit. */
 function cleanLine(value: string, max: number) {

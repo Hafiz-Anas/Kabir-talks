@@ -44,5 +44,11 @@ function resolve(): AiStatus {
 
 export const aiStatus: AiStatus = resolve();
 
-/** Per-admin cap on AI model calls per minute (in-memory; see src/lib/ai/rate-limit.ts). */
+/** Per-admin cap on AI model calls per minute (database-backed; src/server/ai/limits.ts). */
 export const AI_CALLS_PER_MINUTE = env.AI_RATE_LIMIT_PER_MINUTE ?? 30;
+/** Global cap on model calls per day, all features together (Phase 6). */
+export const AI_DAILY_LIMIT = env.AI_DAILY_LIMIT ?? 1000;
+/** "Ask this article" questions per signed-in reader per day (Phase 6). */
+export const READER_ASK_PER_DAY = env.READER_AI_ASK_PER_DAY ?? 20;
+/** Reader burst limits per minute: Ask per reader, on-demand summaries per IP. */
+export const READER_CALLS_PER_MINUTE = 6;
