@@ -1,14 +1,15 @@
 "use client";
 
 import { Headphones, MessageCircleQuestion, Sparkles } from "lucide-react";
-import { lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
+import { type ReactNode, Suspense, useEffect, useRef, useState } from "react";
 
 import type { Locale } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 import { useBrowserVoice } from "./browser-voice";
-import { PanelSkeleton } from "./panel-skeleton";
 import type { ReaderAiLabels } from "./labels";
+import { PanelBoundary, useRetryableLazy } from "./panel-boundary";
+import { PanelSkeleton } from "./panel-skeleton";
 
 /**
  * The article's reader toolbar when AI is configured (Phase 6): Save, then
@@ -16,13 +17,28 @@ import type { ReaderAiLabels } from "./labels";
  * voice for the language). This file is all the article page ships up
  * front; each feature's code and data load only when the reader clicks it,
  * and nothing is requested before that, so the page stays static and light.
+ * Each panel sits in an error boundary: a panel that fails to load or
+ * breaks shows Retry, and the article itself is never affected.
  */
-const SummaryPanel = lazy(() => import("./summary-panel"));
-const AskPanel = lazy(() => import("./ask-panel"));
-const ListenPlayer = lazy(() => import("./listen-player"));
+const loadSummary = () => import("./summary-panel");
+const loadAsk = () => import("./ask-panel");
+const loadListen = () => import("./listen-player");
 
 export const toolClass =
   "inline-flex h-9 items-center gap-2 rounded-sm border border-border px-3 text-sm text-ivory transition-colors hover:border-gold-muted hover:text-gold-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-expanded:border-gold-muted aria-expanded:text-gold";
+
+/** Shown while a panel's code downloads (the first click only). */
+function LoadingPill({ label }: { label: string }) {
+  return (
+    <div
+      role="status"
+      className="fixed end-4 bottom-4 z-40 flex items-center gap-2 rounded-full border border-border bg-obsidian px-4 py-2 text-sm text-grey shadow-lg"
+    >
+      <span aria-hidden className="size-2 animate-pulse rounded-full bg-gold" />
+      {label}
+    </div>
+  );
+}
 
 export function ReaderAiTools({
   articleId,
@@ -49,6 +65,10 @@ export function ReaderAiTools({
   // Listen needs generated audio or a browser voice for this language; with neither it isn't shown.
   const browserVoice = useBrowserVoice(locale);
   const canListen = hasAudio || browserVoice;
+  const [SummaryPanel, retrySummary] = useRetryableLazy(loadSummary);
+  const [AskPanel, retryAsk] = useRetryableLazy(loadAsk);
+  const [ListenPlayer, retryListen] = useRetryableLazy(loadListen);
+  const boundary = { message: labels.error, retryLabel: labels.retry };
 
   // Back from sign-in (…#ask): reopen Ask, then drop the hash.
   useEffect(() => {
@@ -113,27 +133,40 @@ export function ReaderAiTools({
       </ul>
 
       {summaryOpen && (
-        <Suspense fallback={<PanelSkeleton label={labels.summaryLoading} />}>
-          <SummaryPanel articleId={articleId} locale={locale} labels={labels} onClose={() => setSummaryOpen(false)} />
-        </Suspense>
+        <PanelBoundary {...boundary} onRetry={retrySummary}>
+          <Suspense fallback={<PanelSkeleton label={labels.summaryLoading} />}>
+            <SummaryPanel articleId={articleId} locale={locale} labels={labels} onClose={() => setSummaryOpen(false)} />
+          </Suspense>
+        </PanelBoundary>
       )}
       {askLoaded && (
-        <Suspense fallback={null}>
-          <AskPanel articleId={articleId} locale={locale} labels={labels} open={askOpen} onOpenChange={setAskOpen} returnFocusTo={askButton} />
-        </Suspense>
+        <PanelBoundary {...boundary} onRetry={retryAsk}>
+          <Suspense fallback={askOpen ? <LoadingPill label={labels.loading} /> : null}>
+            <AskPanel
+              articleId={articleId}
+              locale={locale}
+              labels={labels}
+              open={askOpen}
+              onOpenChange={setAskOpen}
+              returnFocusTo={askButton}
+            />
+          </Suspense>
+        </PanelBoundary>
       )}
       {listening && (
-        <Suspense fallback={null}>
-          <ListenPlayer
-            articleId={articleId}
-            locale={locale}
-            labels={labels}
-            onClose={() => {
-              setListening(false);
-              listenButton.current?.focus();
-            }}
-          />
-        </Suspense>
+        <PanelBoundary {...boundary} onRetry={retryListen}>
+          <Suspense fallback={<LoadingPill label={labels.listenLoading} />}>
+            <ListenPlayer
+              articleId={articleId}
+              locale={locale}
+              labels={labels}
+              onClose={() => {
+                setListening(false);
+                listenButton.current?.focus();
+              }}
+            />
+          </Suspense>
+        </PanelBoundary>
       )}
     </div>
   );

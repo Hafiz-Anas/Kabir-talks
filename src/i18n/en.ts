@@ -290,6 +290,7 @@ export const en = {
     error: "Something went wrong. Please try again.",
   },
   readerAi: {
+    loading: "Loading…",
     note: "AI summary, may contain mistakes.",
     summaryTitle: "AI summary",
     summaryLoading: "Summarising this article…",

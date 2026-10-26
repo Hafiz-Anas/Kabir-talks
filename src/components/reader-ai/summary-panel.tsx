@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, RotateCcw, Sparkles, X } from "lucide-react";
+import { ArrowDown, RotateCcw, Sparkles, Square, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Locale } from "@/i18n";
@@ -18,6 +18,7 @@ import { PanelSkeleton } from "./panel-skeleton";
 
 type State =
   | { phase: "loading"; preparing: boolean }
+  | { phase: "stopped" }
   | { phase: "ready"; summary: SummaryData }
   | { phase: "error"; error: ReaderAiError | "offline" };
 
@@ -97,7 +98,23 @@ export default function SummaryPanel({
   }, [load]);
 
   if (state.phase === "loading") {
-    return <PanelSkeleton label={state.preparing ? labels.summaryPreparing : labels.summaryLoading} />;
+    return (
+      <PanelSkeleton label={state.preparing ? labels.summaryPreparing : labels.summaryLoading}>
+        <button
+          type="button"
+          data-testid="summary-stop"
+          onClick={() => {
+            // Stops waiting here; a summary already being made still finishes and is cached for next time.
+            controller.current?.abort();
+            setState({ phase: "stopped" });
+          }}
+          className="inline-flex h-8 items-center gap-2 rounded-sm border border-border px-3 text-sm text-ivory hover:border-gold-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <Square aria-hidden className="size-3 fill-current" />
+          {labels.stop}
+        </button>
+      </PanelSkeleton>
+    );
   }
 
   const readFull = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -137,6 +154,18 @@ export default function SummaryPanel({
             <li key={i}>{bullet}</li>
           ))}
         </ul>
+      ) : state.phase === "stopped" ? (
+        <div role="status" className="flex flex-wrap items-center gap-3 text-sm text-grey">
+          {labels.stopped}
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="inline-flex h-8 items-center gap-2 rounded-sm border border-border px-3 text-sm text-ivory hover:border-gold-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <RotateCcw aria-hidden className="size-3.5" />
+            {labels.retry}
+          </button>
+        </div>
       ) : (
         <div role="alert" className="space-y-3">
           <p className="text-sm text-destructive" data-testid="ai-summary-error">

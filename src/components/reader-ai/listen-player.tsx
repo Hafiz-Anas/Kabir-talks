@@ -257,7 +257,7 @@ export default function ListenPlayer({
             onClick={() => (progress.playing ? engine.current?.pause() : engine.current?.play())}
             className={cn(control, "bg-gold text-black hover:bg-gold-soft")}
           >
-            {progress.playing ? <Pause aria-hidden className="size-5 fill-current" /> : <Play aria-hidden className="size-5 fill-current rtl:-scale-x-100" />}
+            {progress.playing ? <Pause aria-hidden className="size-5 fill-current" /> : <Play aria-hidden className="size-5 fill-current" />}
           </button>
         ) : (
           <span className={cn(control, "bg-obsidian-raised text-gold")}>

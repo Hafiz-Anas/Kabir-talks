@@ -290,6 +290,7 @@ export const ur: Dictionary = {
     error: "کچھ غلط ہو گیا۔ دوبارہ کوشش کریں۔",
   },
   readerAi: {
+    loading: "لوڈ ہو رہا ہے…",
     note: "مصنوعی ذہانت (AI) کا تیار کردہ خلاصہ، اس میں غلطیاں ہو سکتی ہیں۔",
     summaryTitle: "AI خلاصہ",
     summaryLoading: "اس مضمون کا خلاصہ تیار ہو رہا ہے…",

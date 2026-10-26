@@ -374,7 +374,7 @@ function Conversation({ articleId, locale, labels }: { articleId: string; locale
             {fill(labels.askLimit, { max: limit })}
           </p>
         )}
-        <p className="text-xs text-grey-dim">{labels.askNote}</p>
+        <p className="text-xs text-grey">{labels.askNote}</p>
       </form>
     </div>
   );
