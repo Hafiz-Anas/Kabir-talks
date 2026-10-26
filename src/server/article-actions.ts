@@ -18,8 +18,9 @@ import { env } from "@/lib/env";
 import type { Locale } from "@/i18n/config";
 import { absoluteUrl, articlePath } from "@/lib/urls";
 
+import { audioPathsOf, removeAudioFiles } from "./ai/audio";
 import { refreshReaderAi } from "./ai/background";
-import { revalidateArticle } from "./revalidate";
+import { revalidateArticle, revalidateArticlePages } from "./revalidate";
 import { imagePrefix } from "./storage";
 
 /**
@@ -346,12 +347,26 @@ export async function archiveArticle(input: { id: string }) {
   return setStatus(input?.id, "ARCHIVED");
 }
 
-/** Permanent delete (tags, bookmarks, comments, summaries and views cascade). */
+/** Permanent delete (tags, bookmarks, comments, summaries, audio rows and views cascade; audio files are removed). */
 export async function deleteArticle(input: { id: string }): Promise<SimpleResult> {
   await requireAdmin();
   const row = await loadWithCategory(input?.id);
   if (!row) return { ok: false, error: "Article not found." };
+  const audioFiles = await audioPathsOf(row.article.id);
   await db.delete(articles).where(eq(articles.id, row.article.id));
+  after(() => removeAudioFiles(audioFiles));
   revalidateArticle(row.article.id, { categorySlug: row.categorySlug, slug: row.article.slug });
+  return { ok: true };
+}
+
+/**
+ * Phase 6: after "Generate audio" the static article page must learn that
+ * Listen now has audio (the editor calls this when generation succeeds).
+ */
+export async function refreshArticlePages(input: { id: string }): Promise<SimpleResult> {
+  await requireAdmin();
+  const row = await loadWithCategory(input?.id);
+  if (!row) return { ok: false, error: "Article not found." };
+  revalidateArticlePages(row.article.id, { categorySlug: row.categorySlug, slug: row.article.slug });
   return { ok: true };
 }

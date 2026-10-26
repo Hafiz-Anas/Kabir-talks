@@ -16,12 +16,23 @@ import { env } from "@/lib/env";
 /** Default model. Checked against https://ai.google.dev/gemini-api/docs/models on 2026-10-20 (stable). */
 export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
 
+/**
+ * Default text-to-speech model and voice for "Listen". Checked against
+ * https://ai.google.dev/gemini-api/docs/speech-generation on 2026-10-26
+ * (model list and the 30 prebuilt voices; Kore is one of them).
+ */
+export const DEFAULT_GEMINI_TTS_MODEL = "gemini-3.8-flash-tts";
+export const DEFAULT_GEMINI_TTS_VOICE = "Kore";
+export const TTS_VOICE = env.GEMINI_TTS_VOICE ?? DEFAULT_GEMINI_TTS_VOICE;
+
 export type AiMode = "gemini" | "mock" | "off";
 
 export type AiStatus = {
   mode: AiMode;
   /** Model code for gemini, "mock" for mock, null when off. */
   model: string | null;
+  /** Text-to-speech model for "Listen" (Phase 6), same rules. */
+  ttsModel: string | null;
   /** Why AI is off (shown on the dashboard), null when on. */
   reason: string | null;
 };
@@ -31,15 +42,20 @@ function resolve(): AiStatus {
 
   if (requested === "mock") {
     if (env.NODE_ENV === "production") {
-      return { mode: "off", model: null, reason: "AI_PROVIDER=mock is ignored in production builds." };
+      return { mode: "off", model: null, ttsModel: null, reason: "AI_PROVIDER=mock is ignored in production builds." };
     }
-    return { mode: "mock", model: "mock", reason: null };
+    return { mode: "mock", model: "mock", ttsModel: "mock", reason: null };
   }
 
   if (!env.GEMINI_API_KEY) {
-    return { mode: "off", model: null, reason: "GEMINI_API_KEY is not set." };
+    return { mode: "off", model: null, ttsModel: null, reason: "GEMINI_API_KEY is not set." };
   }
-  return { mode: "gemini", model: env.GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL, reason: null };
+  return {
+    mode: "gemini",
+    model: env.GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL,
+    ttsModel: env.GEMINI_TTS_MODEL ?? DEFAULT_GEMINI_TTS_MODEL,
+    reason: null,
+  };
 }
 
 export const aiStatus: AiStatus = resolve();

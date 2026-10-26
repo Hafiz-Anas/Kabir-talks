@@ -62,6 +62,7 @@ export const aiTaskSchema = z.discriminatedUnion("task", [
   // Phase 6: reader AI controls in the editor side panel (work on the SAVED article).
   z.object({ task: z.literal("reader-ai-status"), articleId: z.uuid() }),
   z.object({ task: z.literal("summary"), articleId: z.uuid(), locale }),
+  z.object({ task: z.literal("audio"), articleId: z.uuid(), locale }),
 ]);
 
 export type SuggestKind = Extract<z.output<typeof aiTaskSchema>, { task: "suggest" }>["kind"];
@@ -110,6 +111,8 @@ export type AiResults = {
   "reader-ai-status": ReaderAiStatus;
   /** The regenerated summary is in the returned status. */
   summary: ReaderAiStatus;
+  /** Progress events per chunk, then the status with the new audio. */
+  audio: ReaderAiStatus;
 };
 
 export type AiEvent =

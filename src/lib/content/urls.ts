@@ -143,3 +143,16 @@ export function safeAvatarSrc(value: unknown, publicPrefix: string | null): stri
     return null;
   }
 }
+
+/** Phase 6 "Listen": generated audio lives in its own public bucket (WAV, larger than images). */
+export const ARTICLE_AUDIO_BUCKET = "article-audio";
+
+/** Public URL of a generated audio file, e.g. https://abc.supabase.co/storage/v1/object/public/article-audio/audio/{id}/en-ab12.wav */
+export function audioPublicUrl(supabaseUrl: string | undefined | null, path: string): string | null {
+  if (!supabaseUrl) return null;
+  try {
+    return `${new URL(supabaseUrl).origin}/storage/v1/object/public/${ARTICLE_AUDIO_BUCKET}/${path}`;
+  } catch {
+    return null;
+  }
+}

@@ -4,12 +4,15 @@ import { and, asc, count, desc, eq, notInArray, type SQL, sql } from "drizzle-or
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
-import { articles, articleTags, categories, tags, user } from "@/db/schema";
+import { aiAudio, articles, articleTags, categories, tags, user } from "@/db/schema";
 import type { Locale } from "@/i18n/config";
 import { type ArticleCardData, LISTING_PAGE_SIZE, type TagData } from "@/lib/articles/public";
 import { isLocaleComplete } from "@/lib/articles/rules";
 import { cacheTags } from "@/lib/cache-tags";
 import { type ArticleDoc, countWords, docToPlainText, readingMinutes } from "@/lib/content/document";
+import { features } from "@/lib/features";
+
+import { articleSourceHash } from "../ai/source-hash";
 
 /**
  * PUBLIC reads: published articles only, no auth, cached with "use cache".
@@ -177,12 +180,20 @@ export async function getPublishedArticle(slug: string) {
     .where(eq(articleTags.articleId, row.id))
     .orderBy(asc(tags.nameEn));
 
+  // Phase 6: generated "Listen" audio that still matches the text (never stale audio).
+  const audioRows = features.storageEnabled
+    ? await db.select({ locale: aiAudio.locale, sourceHash: aiAudio.sourceHash }).from(aiAudio).where(eq(aiAudio.articleId, row.id))
+    : [];
+
   const content = (locale: Locale) => {
     const card = toCard(row, locale);
     if (!card) return null;
+    const body = (locale === "en" ? row.bodyEn : row.bodyUr) as ArticleDoc;
+    const audio = audioRows.find((entry) => entry.locale === locale);
     return {
       ...card,
-      body: (locale === "en" ? row.bodyEn : row.bodyUr) as ArticleDoc,
+      body,
+      hasAudio: Boolean(audio && audio.sourceHash === articleSourceHash(card.title, body)),
       seoTitle: (locale === "en" ? row.seoTitleEn : row.seoTitleUr)?.trim() || null,
       seoDescription: (locale === "en" ? row.seoDescriptionEn : row.seoDescriptionUr)?.trim() || null,
     };

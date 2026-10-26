@@ -1,7 +1,5 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
-
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -17,6 +15,7 @@ import { isLocaleComplete } from "@/lib/articles/rules";
 import type { ArticleDoc } from "@/lib/content/document";
 
 import { acquireLease, releaseLease, singleFlight, sleep } from "./jobs";
+import { sourceHash } from "./source-hash";
 
 /**
  * Article summaries (Phase 6): 3-5 bullet points plus 3 starter questions
@@ -41,8 +40,6 @@ export type ArticleSource = {
   text: string;
   hash: string;
 };
-
-export const sourceHash = (text: string) => createHash("sha256").update(text).digest("hex");
 
 /**
  * The article in one locale, or null if it doesn't exist or that locale

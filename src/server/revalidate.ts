@@ -44,3 +44,12 @@ export function revalidateCategories(slugs: string[]) {
   for (const slug of new Set(slugs)) updateTag(cacheTags.category(slug));
   revalidatePath("/[locale]", "layout");
 }
+
+/**
+ * Just one article's two pages, e.g. after its "Listen" audio changed (that
+ * changes what the static page shows, not any listing). Server Actions only.
+ */
+export function revalidateArticlePages(id: string, location: ArticleLocation) {
+  updateTag(cacheTags.article(id));
+  for (const locale of locales) revalidatePath(articlePath(locale, location.categorySlug, location.slug));
+}

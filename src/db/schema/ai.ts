@@ -39,6 +39,32 @@ export const aiJobs = pgTable("ai_jobs", {
   startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/**
+ * Phase 6: generated "Listen" audio, one file per article + locale, made
+ * only when the admin clicks "Generate audio". The file lives in Storage
+ * (bucket article-audio, `path`); a new text (sourceHash) makes it out of
+ * date, and out-of-date audio is never played to readers.
+ */
+export const aiAudio = pgTable(
+  "ai_audio",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    articleId: uuid("article_id")
+      .notNull()
+      .references(() => articles.id, { onDelete: "cascade" }),
+    locale: localeEnum("locale").notNull(),
+    // Object path in the article-audio bucket: audio/{articleId}/{locale}-{hash}.wav
+    path: text("path").notNull(),
+    bytes: integer("bytes").notNull(),
+    durationMs: integer("duration_ms").notNull(),
+    voice: text("voice").notNull(),
+    sourceHash: text("source_hash").notNull(),
+    sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [unique("ai_audio_article_id_locale_unique").on(table.articleId, table.locale)],
+);
+
 /** Every billable feature. "admin" covers all editor AI (Phase 3). */
 export const AI_FEATURES = ["admin", "summary", "ask", "listen"] as const;
 export type AiFeature = (typeof AI_FEATURES)[number];

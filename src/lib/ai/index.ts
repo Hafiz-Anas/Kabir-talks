@@ -6,13 +6,13 @@ import type { AiFeature } from "@/db/schema";
 import { env } from "@/lib/env";
 import { reserveDailyCall, takeMinuteLimit } from "@/server/ai/limits";
 
-import { AI_CALLS_PER_MINUTE, aiStatus } from "./config";
+import { AI_CALLS_PER_MINUTE, aiStatus, TTS_VOICE } from "./config";
 import { secondsUntilReset } from "./day";
 import { AiError } from "./errors";
 import { createGeminiProvider } from "./gemini";
 import { parseJsonOutput } from "./json";
 import { createMockProvider } from "./mock";
-import type { AiProvider, AiRequest, AiTextResult } from "./types";
+import type { AiProvider, AiRequest, AiTextResult, SpeechResult } from "./types";
 
 /**
  * The only entry point for model calls (admin AI and reader AI). Adds to
@@ -29,7 +29,7 @@ let provider: AiProvider | null | undefined;
 
 export function getAiProvider(): AiProvider | null {
   if (provider !== undefined) return provider;
-  if (aiStatus.mode === "gemini") provider = createGeminiProvider(env.GEMINI_API_KEY!, aiStatus.model!);
+  if (aiStatus.mode === "gemini") provider = createGeminiProvider(env.GEMINI_API_KEY!, aiStatus.model!, aiStatus.ttsModel!);
   else if (aiStatus.mode === "mock") provider = createMockProvider();
   else provider = null;
   return provider;
@@ -154,4 +154,22 @@ export async function generateJson<T>(request: Request, schema: z.ZodType<T>, op
   delete jsonSchema.$schema;
   const { text } = await generateText({ ...request, jsonSchema }, options);
   return parseJsonOutput(text, schema);
+}
+
+/** Speech audio for one chunk of text ("Listen"). Same limits, cap and logging as every other call. */
+export async function generateSpeech(text: string, options: CallOptions): Promise<SpeechResult> {
+  const startedAt = Date.now();
+  const { ai, signal, end } = await started("speech", options, startedAt);
+  try {
+    const result = await ai.speak({ kind: "speech", text, voice: TTS_VOICE, signal });
+    if (!result.pcm.length) throw new AiError("invalid_output", "The AI returned no audio. Please try again.");
+    log("speech", "ok", startedAt);
+    return result;
+  } catch (error) {
+    const aiError = normalize(error, signal);
+    log("speech", aiError.code, startedAt);
+    throw aiError;
+  } finally {
+    end();
+  }
 }

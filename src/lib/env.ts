@@ -68,6 +68,18 @@ const serverSchema = z.object({
       .regex(/^[a-z0-9][a-z0-9.\-]*$/, "must be a Gemini model code, e.g. gemini-3.8-flash")
       .optional(),
   ),
+  // Phase 6 "Listen": Gemini text-to-speech model and voice (defaults in src/lib/ai/config.ts).
+  GEMINI_TTS_MODEL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z
+      .string()
+      .regex(/^[a-z0-9][a-z0-9.\-]*$/, "must be a Gemini model code, e.g. gemini-3.8-flash-tts")
+      .optional(),
+  ),
+  GEMINI_TTS_VOICE: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().regex(/^[A-Za-z][A-Za-z0-9_-]{1,40}$/, "must be a Gemini voice name, e.g. Kore").optional(),
+  ),
   AI_PROVIDER: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.enum(["gemini", "mock"]).optional(),

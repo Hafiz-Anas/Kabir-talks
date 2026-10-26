@@ -153,7 +153,7 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <ReaderTools articleId={article.id} locale={locale} dict={dict} />
+            <ReaderTools articleId={article.id} locale={locale} dict={dict} hasAudio={content.hasAudio} />
           </div>
           <ShareBar url={siteUrl(path)} title={content.title} labels={dict.article} />
         </header>

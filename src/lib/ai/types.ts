@@ -20,7 +20,8 @@ export type AiCallKind =
   | "edit"
   // Phase 6 reader AI
   | "summary"
-  | "ask";
+  | "ask"
+  | "speech";
 
 export type AiRequest = {
   kind: AiCallKind;
@@ -42,11 +43,26 @@ export type AiTextResult = {
   truncated: boolean;
 };
 
+/** Text-to-speech for one chunk of an article (Phase 6 "Listen"). */
+export type SpeechRequest = {
+  kind: "speech";
+  text: string;
+  voice: string;
+  signal: AbortSignal;
+};
+
+/** 16-bit signed little-endian mono PCM. */
+export type SpeechResult = { pcm: Uint8Array; sampleRate: number };
+
 export interface AiProvider {
   readonly name: "gemini" | "mock";
   readonly model: string;
+  /** Text-to-speech model ("mock" for the mock provider). */
+  readonly ttsModel: string;
   /** Throws AiError. */
   generate(request: AiRequest): Promise<AiTextResult>;
   /** Yields text deltas. Throws AiError. */
   stream(request: AiRequest): AsyncIterable<string>;
+  /** Speech audio for one chunk of text. Throws AiError. */
+  speak(request: SpeechRequest): Promise<SpeechResult>;
 }

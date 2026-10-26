@@ -2,6 +2,7 @@ import { slugify } from "@/lib/articles/slug";
 
 import { AiError, isAiErrorCode } from "./errors";
 import { ASK_NOT_COVERED, ASK_REFUSAL } from "./prompts";
+import { mockTone, TTS_SAMPLE_RATE } from "./speech";
 import type { AiProvider, AiRequest } from "./types";
 
 /**
@@ -235,6 +236,8 @@ function respond(request: AiRequest): string {
       return mockSummary(str(input.text), locale, wrong);
     case "ask":
       return mockAsk(input, locale);
+    case "speech":
+      return ""; // audio goes through speak(), never the text path
   }
 }
 
@@ -327,12 +330,21 @@ export function createMockProvider(): AiProvider {
   return {
     name: "mock",
     model: "mock",
+    ttsModel: "mock",
 
     async generate(request) {
       const control = controlFor(request);
       await sleep(control.slow ? 2500 : 40, request.signal);
       if (control.error || control.errorMid) throw new AiError((control.error ?? control.errorMid)!);
       return { text: respond(request), truncated: false };
+    },
+
+    /** A quiet tone instead of speech, so Listen can be tested end to end without a key. */
+    async speak(request) {
+      const control = controlFor({ mockInput: request.text } as AiRequest);
+      await sleep(control.slow ? 1500 : 60, request.signal);
+      if (control.error) throw new AiError(control.error);
+      return { pcm: mockTone(request.text), sampleRate: TTS_SAMPLE_RATE };
     },
 
     async *stream(request) {

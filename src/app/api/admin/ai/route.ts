@@ -15,6 +15,9 @@ import { handlers } from "@/server/ai/tasks";
 
 const MAX_BODY_BYTES = 1_000_000;
 
+// "Generate audio" speaks long articles in chunks; give it Vercel's full 5 minutes.
+export const maxDuration = 300;
+
 function jsonError(status: number, code: AiError["code"], message = AI_ERROR_MESSAGES[code]) {
   return Response.json({ error: { code, message } }, { status, headers: { "cache-control": "no-store" } });
 }

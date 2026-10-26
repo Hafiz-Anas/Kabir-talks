@@ -1,12 +1,13 @@
 "use client";
 
-import { ChevronDown, RefreshCw, Sparkles } from "lucide-react";
+import { AudioLines, ChevronDown, RefreshCw, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { ComingSoon } from "@/components/coming-soon";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import type { ReaderAiStatus, ReaderLocale, SummaryStatus } from "@/lib/ai/reader";
+import type { AudioStatus, ReaderAiStatus, ReaderLocale, SummaryStatus } from "@/lib/ai/reader";
+import { refreshArticlePages } from "@/server/article-actions";
 import { cn } from "@/lib/utils";
 
 import { AiErrorNotice, AiWorking } from "./ai-notice";
@@ -14,15 +15,24 @@ import { useAiTask } from "./use-ai-task";
 
 /**
  * Editor side panel "Reader AI" (Phase 6): what readers get from the SAVED
- * article in each language — summary status, a preview, and Regenerate.
- * Live articles refresh their summaries automatically after publishing and
- * saving; this is for checking them and forcing a new one.
+ * article in each language — summary status, a preview, and Regenerate;
+ * and the "Listen" audio, which only the admin can generate (it costs one
+ * model call per ~1,800 characters). Live articles refresh their summaries
+ * automatically after publishing and saving; audio is regenerated here.
  */
 
 const LANGUAGES: { locale: ReaderLocale; name: string }[] = [
   { locale: "en", name: "English" },
   { locale: "ur", name: "Urdu" },
 ];
+
+const AUDIO_LABEL: Record<AudioStatus["state"], string> = {
+  ready: "Ready",
+  stale: "Out of date",
+  missing: "Not generated",
+  unavailable: "Language incomplete",
+  unsupported: "Not supported",
+};
 
 const STATE_LABEL: Record<SummaryStatus["state"], string> = {
   ready: "Ready",
@@ -79,6 +89,18 @@ export function ReaderAiPanel({
           locale={locale}
           name={name}
           status={status?.summaries[locale] ?? null}
+          dirty={dirty}
+          onStatus={setStatus}
+        />
+      ))}
+      {LANGUAGES.map(({ locale, name }) => (
+        <AudioRow
+          key={locale}
+          articleId={articleId}
+          locale={locale}
+          name={name}
+          status={status?.audio[locale] ?? null}
+          storageEnabled={status?.storageEnabled ?? false}
           dirty={dirty}
           onStatus={setStatus}
         />
@@ -183,6 +205,108 @@ function SummaryRow({
       {state !== "unavailable" && dirty && <p className="text-xs text-grey">Save your changes first: summaries use the saved article.</p>}
       {task.state.status === "stopped" && <p className="text-xs text-grey">Stopped waiting. The summary may still finish in the background.</p>}
       {task.state.status === "error" && <AiErrorNotice error={task.state.error} onRetry={() => void task.retry()} />}
+    </section>
+  );
+}
+
+const minutes = (ms: number) => {
+  const s = Math.round(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+function AudioRow({
+  articleId,
+  locale,
+  name,
+  status,
+  storageEnabled,
+  dirty,
+  onStatus,
+}: {
+  articleId: string;
+  locale: ReaderLocale;
+  name: string;
+  status: AudioStatus | null;
+  storageEnabled: boolean;
+  dirty: boolean;
+  onStatus: (status: ReaderAiStatus) => void;
+}) {
+  const task = useAiTask<"audio">();
+  const state = status?.state ?? "missing";
+  const progress = task.state.status === "running" ? task.state.progress : null;
+
+  const generate = async () => {
+    const result = await task.run({ task: "audio", articleId, locale });
+    if (!result) return;
+    onStatus(result);
+    // Let the static article page show (or keep showing) Listen with the new audio.
+    await refreshArticlePages({ id: articleId }).catch(() => undefined);
+  };
+
+  return (
+    <section aria-label={`${name} audio`} data-testid={`audio-${locale}`} className="space-y-2 border-t border-border pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="flex items-center gap-1.5 text-sm text-ivory">
+          <AudioLines aria-hidden className="size-3.5 text-gold" />
+          {name} audio
+        </h3>
+        <span
+          data-testid={`audio-${locale}-state`}
+          data-state={state}
+          className={cn("text-xs", state === "ready" ? "text-emerald-400" : state === "stale" ? "text-amber-400" : "text-grey")}
+        >
+          {AUDIO_LABEL[state]}
+        </span>
+      </div>
+
+      {state === "unsupported" ? (
+        <p className="text-xs text-grey">
+          Gemini text-to-speech doesn’t support {name}. {name} readers hear their browser’s own {name} voice when their
+          device has one; otherwise the Listen button is hidden.
+        </p>
+      ) : !storageEnabled ? (
+        <p className="text-xs text-grey">Audio files need Supabase Storage (see README → Supabase Storage).</p>
+      ) : (
+        <>
+          {status?.url && (
+            <div className="space-y-1">
+              {/* Admin preview only: readers never get out-of-date audio. */}
+              <audio controls preload="none" src={status.url} className="h-9 w-full" data-testid={`audio-${locale}-preview`} />
+              <p className="text-xs text-grey">
+                {status.durationMs !== null && minutes(status.durationMs)}
+                {status.bytes !== null && ` · ${(status.bytes / 1024 / 1024).toFixed(1)} MB`}
+                {state === "stale" && " · previous version"}
+              </p>
+            </div>
+          )}
+          {state === "stale" && (
+            <p className="text-xs text-amber-400">The text changed since this audio was made. Readers won’t hear it until you regenerate it.</p>
+          )}
+
+          {task.state.status === "running" ? (
+            <AiWorking
+              label={progress && progress.total > 1 ? `Generating ${name} audio… part ${Math.min(progress.done + 1, progress.total)} of ${progress.total}` : `Generating ${name} audio…`}
+              onStop={task.stop}
+            />
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="bg-transparent"
+              disabled={state === "unavailable" || dirty}
+              onClick={() => void generate()}
+            >
+              <AudioLines aria-hidden />
+              {state === "missing" ? "Generate audio" : "Regenerate audio"}
+            </Button>
+          )}
+          {state === "unavailable" && <p className="text-xs text-grey">Add a {name} title and body, then save.</p>}
+          {state !== "unavailable" && dirty && <p className="text-xs text-grey">Save your changes first: audio uses the saved article.</p>}
+          {task.state.status === "stopped" && <p className="text-xs text-grey">Stopped. Nothing was saved.</p>}
+          {task.state.status === "error" && <AiErrorNotice error={task.state.error} onRetry={() => void task.retry()} />}
+        </>
+      )}
     </section>
   );
 }

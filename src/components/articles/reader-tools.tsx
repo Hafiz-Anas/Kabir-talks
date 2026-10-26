@@ -15,7 +15,18 @@ import { features } from "@/lib/features";
  * itself stays static. Save is the real bookmark button (state loaded in the
  * browser).
  */
-export function ReaderTools({ articleId, locale, dict }: { articleId: string; locale: Locale; dict: Dictionary }) {
+export function ReaderTools({
+  articleId,
+  locale,
+  dict,
+  hasAudio = false,
+}: {
+  articleId: string;
+  locale: Locale;
+  dict: Dictionary;
+  /** Current generated "Listen" audio exists for this language. */
+  hasAudio?: boolean;
+}) {
   const bookmark = <BookmarkButton articleId={articleId} locale={locale} labels={dict.bookmarks} variant="tool" />;
   const comingSoon = (label: string, Icon: LucideIcon) => (
     <li
@@ -35,7 +46,7 @@ export function ReaderTools({ articleId, locale, dict }: { articleId: string; lo
         locale={locale}
         labels={readerAiLabels(dict)}
         bookmark={bookmark}
-        pending={comingSoon(dict.article.listen, Headphones)}
+        hasAudio={hasAudio}
       />
     );
   }

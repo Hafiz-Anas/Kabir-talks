@@ -1,22 +1,25 @@
 "use client";
 
-import { MessageCircleQuestion, Sparkles } from "lucide-react";
+import { Headphones, MessageCircleQuestion, Sparkles } from "lucide-react";
 import { lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
 
 import type { Locale } from "@/i18n";
 import { cn } from "@/lib/utils";
 
+import { useBrowserVoice } from "./browser-voice";
 import { PanelSkeleton } from "./panel-skeleton";
 import type { ReaderAiLabels } from "./labels";
 
 /**
  * The article's reader toolbar when AI is configured (Phase 6): Save, then
- * Summarise, Ask and Listen. This file is all the article page ships up
+ * Summarise, Ask and Listen (shown only with generated audio or a browser
+ * voice for the language). This file is all the article page ships up
  * front; each feature's code and data load only when the reader clicks it,
  * and nothing is requested before that, so the page stays static and light.
  */
 const SummaryPanel = lazy(() => import("./summary-panel"));
 const AskPanel = lazy(() => import("./ask-panel"));
+const ListenPlayer = lazy(() => import("./listen-player"));
 
 export const toolClass =
   "inline-flex h-9 items-center gap-2 rounded-sm border border-border px-3 text-sm text-ivory transition-colors hover:border-gold-muted hover:text-gold-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-expanded:border-gold-muted aria-expanded:text-gold";
@@ -26,21 +29,26 @@ export function ReaderAiTools({
   locale,
   labels,
   bookmark,
-  pending,
+  hasAudio,
 }: {
   articleId: string;
   locale: Locale;
   labels: ReaderAiLabels;
   /** The Save button (rendered by the server component). */
   bookmark: ReactNode;
-  /** Tools not available yet, shown as "Coming soon" items. */
-  pending?: ReactNode;
+  /** Generated audio exists for this language and matches the text (from the static page). */
+  hasAudio: boolean;
 }) {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   // The panel's code loads on first open and stays loaded.
   const [askLoaded, setAskLoaded] = useState(false);
   const askButton = useRef<HTMLButtonElement>(null);
+  const [listening, setListening] = useState(false);
+  const listenButton = useRef<HTMLButtonElement>(null);
+  // Listen needs generated audio or a browser voice for this language; with neither it isn't shown.
+  const browserVoice = useBrowserVoice(locale);
+  const canListen = hasAudio || browserVoice;
 
   // Back from sign-in (…#ask): reopen Ask, then drop the hash.
   useEffect(() => {
@@ -87,7 +95,21 @@ export function ReaderAiTools({
             {labels.ask}
           </button>
         </li>
-        {pending}
+        {canListen && (
+          <li>
+            <button
+              ref={listenButton}
+              type="button"
+              className={toolClass}
+              aria-pressed={listening}
+              data-testid="listen-button"
+              onClick={() => setListening((on) => !on)}
+            >
+              <Headphones aria-hidden className={cn("size-4", listening ? "text-gold" : "text-gold-muted")} />
+              {labels.listen}
+            </button>
+          </li>
+        )}
       </ul>
 
       {summaryOpen && (
@@ -98,6 +120,19 @@ export function ReaderAiTools({
       {askLoaded && (
         <Suspense fallback={null}>
           <AskPanel articleId={articleId} locale={locale} labels={labels} open={askOpen} onOpenChange={setAskOpen} returnFocusTo={askButton} />
+        </Suspense>
+      )}
+      {listening && (
+        <Suspense fallback={null}>
+          <ListenPlayer
+            articleId={articleId}
+            locale={locale}
+            labels={labels}
+            onClose={() => {
+              setListening(false);
+              listenButton.current?.focus();
+            }}
+          />
         </Suspense>
       )}
     </div>

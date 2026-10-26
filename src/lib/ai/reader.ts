@@ -45,9 +45,31 @@ export type SummaryStatus = {
   generatedAt: string | null;
 };
 
+/**
+ * Admin editor side panel: generated "Listen" audio per language.
+ * "unsupported" = server text-to-speech can't do this language (Urdu);
+ * "unavailable" = the language isn't complete yet.
+ */
+export type AudioStatus = {
+  state: "ready" | "stale" | "missing" | "unavailable" | "unsupported";
+  /** Public URL of the current file (also when stale, for the admin's preview only). */
+  url: string | null;
+  durationMs: number | null;
+  bytes: number | null;
+  generatedAt: string | null;
+};
+
 export type ReaderAiStatus = {
   summaries: Record<ReaderLocale, SummaryStatus>;
+  audio: Record<ReaderLocale, AudioStatus>;
+  /** Audio needs Supabase Storage (features.storageEnabled). */
+  storageEnabled: boolean;
 };
+
+/** GET /api/ai/listen: generated audio if current, else the text for the browser's own voice. */
+export type ListenResponse =
+  | { audio: { url: string; durationMs: number }; speech: null }
+  | { audio: null; speech: { paragraphs: string[] } };
 
 export const localeSchema = z.enum(["en", "ur"]);
 
