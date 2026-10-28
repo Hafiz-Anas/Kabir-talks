@@ -14,6 +14,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { CommentCount } from "@/components/comments/comment-count";
 import { LazyComments } from "@/components/comments/lazy-comments";
 import { ArticleBody } from "@/components/content/article-body";
+import { JsonLdScript } from "@/components/json-ld";
 import { newsletterLabels } from "@/components/newsletter/labels";
 import { SignupBox } from "@/components/newsletter/signup-box";
 import { SetLocaleAlternates } from "@/components/layout/locale-alternates";
@@ -22,7 +23,8 @@ import { significantUpdate, tagName } from "@/lib/articles/public";
 import { features } from "@/lib/features";
 import { docToPlainText } from "@/lib/content/document";
 import { formatPublicDate } from "@/lib/format";
-import { articleShareImage, metaDescription, pageMetadata, siteUrl } from "@/lib/seo";
+import { articleShareImage, metaDescription, pageMetadata, siteIdentity, siteUrl } from "@/lib/seo";
+import { breadcrumbLd, newsArticleLd } from "@/lib/structured-data";
 import { articlePath, categoryPath } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { getPublishedArticle, listArticleStaticParams, listRelatedArticles } from "@/server/public/articles";
@@ -113,6 +115,31 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
 
   return (
     <>
+      <JsonLdScript
+        nodes={[
+          newsArticleLd({
+            url: siteUrl(path),
+            headline: content.title,
+            description: content.seoDescription ?? content.excerpt,
+            images: [
+              ...(article.coverImageUrl ? [article.coverImageUrl] : []),
+              articleShareImage(locale, article.slug, article.updatedAt, content.title).url,
+            ],
+            datePublished: article.publishedAt,
+            dateModified: article.updatedAt,
+            locale,
+            section,
+            keywords: article.tags.map((tag) => tagName(tag, locale)),
+            author: { name: byline(article.authorName, dict), isOrganization: byline(article.authorName, dict) === dict.site.name },
+            site: siteIdentity(locale),
+          }),
+          breadcrumbLd([
+            { name: dict.nav.home, url: siteUrl(`/${locale}`) },
+            { name: section, url: siteUrl(categoryPath(locale, article.categorySlug)) },
+            { name: content.title, url: siteUrl(path) },
+          ]),
+        ]}
+      />
       <ReadingProgress targetId="article-body" label={dict.article.progress} />
       <ViewBeacon articleId={article.id} />
       <SetLocaleAlternates

@@ -4,9 +4,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { ArticleListing } from "@/components/articles/article-listing";
+import { JsonLdScript } from "@/components/json-ld";
 import { fill, getDictionary, isLocale } from "@/i18n";
 import { LISTING_PAGE_SIZE, parsePageParam, tagName } from "@/lib/articles/public";
-import { metaDescription, pageMetadata } from "@/lib/seo";
+import { metaDescription, pageMetadata, siteUrl } from "@/lib/seo";
+import { breadcrumbLd } from "@/lib/structured-data";
 import { categoryPath, listingPagePath, tagPath } from "@/lib/urls";
 
 import {
@@ -96,18 +98,28 @@ export async function ListingPage({ kind, raw }: { kind: Kind; raw: RawParams })
   });
 
   return (
-    <ArticleListing
-      locale={listing.locale}
-      dict={dict}
-      eyebrow={kind === "tag" ? dict.listing.tag : undefined}
-      heading={listing.englishName ? <bdi lang="en">{listing.name}</bdi> : listing.name}
-      description={listing.description}
-      articles={articles}
-      page={listing.page}
-      pages={listing.pages}
-      basePath={listing.basePath}
-      emptyText={kind === "tag" ? dict.listing.emptyTag : dict.listing.emptyCategory}
-    />
+    <>
+      <JsonLdScript
+        nodes={[
+          breadcrumbLd([
+            { name: dict.nav.home, url: siteUrl(`/${listing.locale}`) },
+            { name: kind === "tag" ? `${dict.listing.tag}: ${listing.name}` : listing.name, url: siteUrl(listing.basePath) },
+          ]),
+        ]}
+      />
+      <ArticleListing
+        locale={listing.locale}
+        dict={dict}
+        eyebrow={kind === "tag" ? dict.listing.tag : undefined}
+        heading={listing.englishName ? <bdi lang="en">{listing.name}</bdi> : listing.name}
+        description={listing.description}
+        articles={articles}
+        page={listing.page}
+        pages={listing.pages}
+        basePath={listing.basePath}
+        emptyText={kind === "tag" ? dict.listing.emptyTag : dict.listing.emptyCategory}
+      />
+    </>
   );
 }
 

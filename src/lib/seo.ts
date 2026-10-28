@@ -17,6 +17,11 @@ export const OG_IMAGE_SIZE = { width: 1200, height: 630 } as const;
 
 export const siteUrl = (path: string) => absoluteUrl(env.NEXT_PUBLIC_SITE_URL, path);
 
+/** Site identity for structured data (src/lib/structured-data.ts). */
+export function siteIdentity(locale: Locale) {
+  return { name: getDictionary(locale).site.name, url: env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, ""), logo: siteUrl("/brand/logo.png") };
+}
+
 /** Branded share image for pages without their own (homepage, sections, tags, search, about). */
 export function siteShareImage(locale: Locale) {
   return { url: siteUrl(`/og/site/${locale}`), ...OG_IMAGE_SIZE, alt: getDictionary(locale).site.name };
@@ -83,7 +88,12 @@ export function pageMetadata({
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,
-    alternates: { canonical, languages: alternates },
+    alternates: {
+      canonical,
+      languages: alternates,
+      // Phase 7: lets feed readers find the language's RSS feed from any page.
+      types: { "application/rss+xml": [{ url: siteUrl(`/${locale}/rss.xml`), title: `${dict.site.name} (${dict.languageName[locale]})` }] },
+    },
     robots: noindex ? { index: false, follow: true } : undefined,
     openGraph: {
       title: fullTitle,

@@ -7,11 +7,13 @@ import { LoadMore } from "@/components/articles/load-more";
 import { TrendingList } from "@/components/articles/trending-list";
 import { newsletterLabels } from "@/components/newsletter/labels";
 import { SignupBox } from "@/components/newsletter/signup-box";
+import { JsonLdScript } from "@/components/json-ld";
 import { SectionHeading } from "@/components/section-heading";
 import { cardLabels, type Dictionary, getDictionary, isLocale, type Locale } from "@/i18n";
 import { type ArticleCardData, FEED_PAGE_SIZE } from "@/lib/articles/public";
 import { features } from "@/lib/features";
-import { pageMetadata } from "@/lib/seo";
+import { pageMetadata, siteIdentity, siteUrl } from "@/lib/seo";
+import { organizationLd, websiteLd } from "@/lib/structured-data";
 import { categoryPath } from "@/lib/urls";
 import { listArticleCards, listPublicCategories } from "@/server/public/articles";
 import { listTrending } from "@/server/public/trending";
@@ -79,6 +81,9 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
 
   return (
     <div className="mx-auto max-w-6xl space-y-16 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <JsonLdScript
+        nodes={[organizationLd(siteIdentity(locale)), websiteLd({ ...siteIdentity(locale), locale, searchUrl: siteUrl(`/${locale}/search`) })]}
+      />
       <h1 className="sr-only">
         {dict.site.name} — {dict.home.title}
       </h1>

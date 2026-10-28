@@ -223,3 +223,31 @@ export async function siteShareImageResponse(locale: Locale) {
     </Frame>,
   );
 }
+
+/** 512×512 square logo (the gold KT mark on black): the publisher logo in structured data. */
+export async function logoImageResponse() {
+  const { playfair } = await satoriFonts();
+  return new ImageResponse(
+    (
+      <div style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center", background: "#0a0a0a" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 360,
+            height: 360,
+            border: `10px solid ${GOLD}`,
+            color: GOLD,
+            fontFamily: "Playfair",
+            fontSize: 150,
+            letterSpacing: 6,
+          }}
+        >
+          KT
+        </div>
+      </div>
+    ),
+    { width: 512, height: 512, fonts: [{ name: "Playfair", data: playfair, weight: 700, style: "normal" }] },
+  );
+}
