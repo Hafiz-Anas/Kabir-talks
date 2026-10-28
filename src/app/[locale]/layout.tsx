@@ -3,6 +3,7 @@ import "../globals.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { AdsScript } from "@/components/ad-slot";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { getDictionary, isLocale, localeDirection, locales } from "@/i18n";
@@ -50,6 +51,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
           {children}
         </main>
         <Footer locale={locale} dict={dict} />
+        <AdsScript />
       </body>
     </html>
   );

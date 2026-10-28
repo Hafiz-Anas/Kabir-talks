@@ -30,7 +30,7 @@ async function main() {
 
   const insertedSlots = await db
     .insert(adSlots)
-    .values(AD_PLACEMENTS.map((placement) => ({ placement, htmlSnippet: "", isEnabled: false })))
+    .values(AD_PLACEMENTS.map((placement) => ({ placement, isEnabled: false })))
     .onConflictDoNothing({ target: adSlots.placement })
     .returning({ placement: adSlots.placement });
 

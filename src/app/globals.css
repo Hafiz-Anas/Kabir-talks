@@ -154,6 +154,11 @@
 }
 
 @layer components {
+  /* Phase 7: an AdSense unit Google couldn't fill collapses, so there's no empty box. */
+  .kt-ad:has(ins.adsbygoogle[data-ad-status="unfilled"]) {
+    display: none;
+  }
+
   /* Thin gold rule used above section titles. */
   .kt-rule {
     @apply border-t border-gold-muted/60;

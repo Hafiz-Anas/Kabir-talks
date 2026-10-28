@@ -19,7 +19,8 @@
     "verify:ai": "tsx scripts/verify-ai.ts",
     "verify:readers": "tsx scripts/verify-readers.ts",
     "newsletter:process": "tsx --conditions=react-server scripts/newsletter.ts process",
-    "newsletter:digest": "tsx --conditions=react-server scripts/newsletter.ts digest"
+    "newsletter:digest": "tsx --conditions=react-server scripts/newsletter.ts digest",
+    "verify:growth": "tsx scripts/verify-growth.ts"
   },
   "dependencies": {
     "@google/genai": "2.27.0",

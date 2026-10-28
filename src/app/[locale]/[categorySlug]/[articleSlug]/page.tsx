@@ -161,7 +161,7 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
           <ShareBar url={siteUrl(path)} title={content.title} labels={dict.article} />
         </header>
 
-        <AdSlot placement="article-top" />
+        <AdSlot placement="article-top" locale={locale} />
 
         {article.coverImageUrl && (
           <figure className="mx-auto mt-10 max-w-4xl">
@@ -182,7 +182,7 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
             doc={content.body}
             locale={locale}
             className="kt-article-body"
-            inline={<AdSlot placement="article-inline" />}
+            inline={<AdSlot placement="article-inline" locale={locale} />}
           />
 
           {article.tags.length > 0 && (
@@ -215,7 +215,7 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
 
           {features.newsletterEnabled && <SignupBox locale={locale} labels={newsletterLabels(dict)} variant="inline" />}
 
-          <AdSlot placement="article-bottom" />
+          <AdSlot placement="article-bottom" locale={locale} />
 
           <section aria-labelledby="comments" className="space-y-4">
             <h2 id="comments" className="scroll-mt-28 text-2xl text-ivory">

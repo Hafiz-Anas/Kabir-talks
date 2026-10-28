@@ -82,7 +82,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
         {dict.site.name} — {dict.home.title}
       </h1>
 
-      <AdSlot placement="home-top" />
+      <AdSlot placement="home-top" locale={locale} />
 
       <section aria-label={dict.home.topStories} className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-12">
         <ArticleCard article={hero} locale={locale} labels={cardLabels(dict)} variant="large" priority headingLevel={2} />
@@ -119,7 +119,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
         </section>
       )}
 
-      <AdSlot placement="home-feed" />
+      <AdSlot placement="home-feed" locale={locale} />
 
       <div className="grid items-start gap-4 md:grid-cols-2">
         {features.newsletterEnabled && <SignupBox locale={locale} labels={newsletterLabels(dict)} />}

@@ -126,11 +126,33 @@ export const newsletterDeliveries = pgTable(
   ],
 );
 
+/**
+ * Phase 7: one AdSense unit per placement. Only IDs are stored, never ad
+ * code: the admin may paste a whole ad unit, and src/lib/ads.ts extracts the
+ * slot ID and format from it. The site renders the <ins> tag itself.
+ */
 export const adSlots = pgTable("ad_slots", {
   id: uuid("id").primaryKey().defaultRandom(),
   placement: adPlacement("placement").notNull().unique(),
-  htmlSnippet: text("html_snippet").default("").notNull(),
   isEnabled: boolean("is_enabled").default(false).notNull(),
+  /** data-ad-slot: digits only. */
+  slotId: text("slot_id"),
+  /** data-ad-format: auto | fluid | rectangle | horizontal | vertical. */
+  adFormat: text("ad_format").default("auto").notNull(),
+  /** data-ad-layout ("in-article") and data-ad-layout-key (in-feed units), when the unit has them. */
+  adLayout: text("ad_layout"),
+  adLayoutKey: text("ad_layout_key"),
+  updatedAt: updatedAt(),
+});
+
+/**
+ * Phase 7: small site-wide settings edited in the admin, as JSON per key:
+ * "ads" (AdSense publisher ID and switches), "contact" (public email).
+ * Typed accessors: src/server/settings.ts.
+ */
+export const siteSettings = pgTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
   updatedAt: updatedAt(),
 });
 

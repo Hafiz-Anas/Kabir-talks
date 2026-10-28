@@ -10,7 +10,7 @@ export default async function AccountLayout({ children, params }: LayoutProps<"/
   const { nav, account } = getDictionary(locale);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-6">
+    <div data-no-ads className="mx-auto max-w-5xl px-4 pt-8 sm:px-6">
       <AccountNav locale={locale} labels={{ account: nav.myAccount, bookmarks: nav.myBookmarks, nav: account.title }} />
       {children}
     </div>

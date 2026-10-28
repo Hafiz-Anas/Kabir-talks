@@ -14,10 +14,13 @@ export default async function ArticleNotFound() {
   const locale = isLocale(value) ? value : defaultLocale;
   const dict = getDictionary(locale);
   return (
-    <OtherLanguageNotice
-      locale={locale}
-      dict={{ article: dict.article, languageName: dict.languageName, common: dict.common }}
-      fallback={<NotFoundMessage locale={locale} dict={dict} />}
-    />
+    // data-no-ads: AdsLoader never loads ads on error pages.
+    <div data-no-ads>
+      <OtherLanguageNotice
+        locale={locale}
+        dict={{ article: dict.article, languageName: dict.languageName, common: dict.common }}
+        fallback={<NotFoundMessage locale={locale} dict={dict} />}
+      />
+    </div>
   );
 }

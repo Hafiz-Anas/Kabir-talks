@@ -15,12 +15,12 @@ const ACTIVE: NavItem[] = [
   { label: "Categories", href: "/admin/categories", icon: FolderTree },
   { label: "Comments", href: "/admin/comments", icon: MessageSquare },
   { label: "Newsletter", href: "/admin/newsletter", icon: Mail },
+  { label: "Ads", href: "/admin/ads", icon: Megaphone },
   { label: "Email outbox", href: "/admin/emails", icon: Inbox },
 ];
 
 // Later phases: shown greyed out so the admin knows what's coming.
 const UPCOMING: NavItem[] = [
-  { label: "Ads", icon: Megaphone },
   { label: "Analytics", icon: BarChart3 },
   { label: "Settings", icon: Settings },
 ];

@@ -8,4 +8,6 @@ export const cacheTags = {
   article: (id: string) => `article:${id}`,
   categories: "categories",
   category: (slug: string) => `category:${slug}`,
+  /** Admin-edited site settings (ads, contact email). */
+  settings: "settings",
 } as const;

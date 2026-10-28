@@ -5,7 +5,8 @@ import type { Dictionary, Locale } from "@/i18n";
 /** The public 404 body (keeps header/footer and the visitor's language). */
 export function NotFoundMessage({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   return (
-    <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 px-4 py-24 text-center sm:px-6">
+    // data-no-ads: AdsLoader never loads ads on error pages.
+    <div data-no-ads className="mx-auto flex max-w-2xl flex-col items-center gap-5 px-4 py-24 text-center sm:px-6">
       <p className="font-serif text-6xl text-gold" lang="en">
         404
       </p>

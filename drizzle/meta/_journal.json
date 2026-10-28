@@ -85,6 +85,20 @@
       "when": 1793170555711,
       "tag": "0011_newsletter_drop_plain_token",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793171227872,
+      "tag": "0012_ads",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793171234812,
+      "tag": "0013_ads_drop_html",
+      "breakpoints": true
     }
   ]
 }

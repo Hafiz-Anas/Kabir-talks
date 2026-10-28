@@ -47,6 +47,7 @@ export const ur: Dictionary = {
     trendingDescription: "وہ خبریں جن پر قارئین اس وقت بات کر رہے ہیں۔",
   },
   common: {
+    advertisement: "اشتہار",
     readMore: "مزید پڑھیں",
     comingSoon: "جلد آ رہا ہے",
     viewAll: "سب دیکھیں",

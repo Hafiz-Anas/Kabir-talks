@@ -49,6 +49,7 @@ export const en = {
     trendingDescription: "The stories readers are talking about right now.",
   },
   common: {
+    advertisement: "Advertisement",
     readMore: "Read more",
     comingSoon: "Coming soon",
     viewAll: "View all",
