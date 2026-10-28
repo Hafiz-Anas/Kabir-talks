@@ -45,7 +45,7 @@ function hasTag(tagSlug: string): SQL {
     where ${articleTags.articleId} = ${articles.id} and ${tags.slug} = ${tagSlug})`;
 }
 
-const cardColumns = {
+export const cardColumns = {
   id: articles.id,
   slug: articles.slug,
   titleEn: articles.titleEn,

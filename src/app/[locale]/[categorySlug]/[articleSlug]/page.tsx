@@ -8,6 +8,8 @@ import { ArticleCard } from "@/components/articles/article-card";
 import { ReaderTools } from "@/components/articles/reader-tools";
 import { ReadingProgress } from "@/components/articles/reading-progress";
 import { ShareBar } from "@/components/articles/share-bar";
+import { TrendingList } from "@/components/articles/trending-list";
+import { ViewBeacon } from "@/components/articles/view-beacon";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { CommentCount } from "@/components/comments/comment-count";
 import { LazyComments } from "@/components/comments/lazy-comments";
@@ -22,7 +24,9 @@ import { docToPlainText } from "@/lib/content/document";
 import { formatPublicDate } from "@/lib/format";
 import { articleShareImage, metaDescription, pageMetadata, siteUrl } from "@/lib/seo";
 import { articlePath, categoryPath } from "@/lib/urls";
+import { cn } from "@/lib/utils";
 import { getPublishedArticle, listArticleStaticParams, listRelatedArticles } from "@/server/public/articles";
+import { listTrending } from "@/server/public/trending";
 
 /**
  * Article page. Prerendered for every published (locale, article) pair at
@@ -103,131 +107,148 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
   const dict = getDictionary(locale);
   const path = articlePath(locale, article.categorySlug, article.slug);
   const section = locale === "en" ? article.categoryNameEn : article.categoryNameUr;
-  const related = await listRelatedArticles(article.id, locale);
+  const [related, trending] = await Promise.all([listRelatedArticles(article.id, locale), listTrending(locale, { excludeId: article.id })]);
   const updated = significantUpdate(article.publishedAt, article.updatedAt);
   const other = locales.find((l) => l !== locale)!;
 
   return (
     <>
       <ReadingProgress targetId="article-body" label={dict.article.progress} />
+      <ViewBeacon articleId={article.id} />
       <SetLocaleAlternates
         pathname={path}
         alternates={{ [other]: article.locales[other] ? articlePath(other, article.categorySlug, article.slug) : `/${other}` }}
       />
 
       <article className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-        <header className="mx-auto max-w-3xl space-y-5">
-          <Breadcrumb
-            label={dict.nav.breadcrumb}
-            items={[
-              { href: `/${locale}`, label: dict.nav.home },
-              { href: categoryPath(locale, article.categorySlug), label: section },
-            ]}
-          />
-          <p className="text-xs font-medium tracking-[0.14em] text-gold uppercase">
-            <Link href={categoryPath(locale, article.categorySlug)} className="hover:text-gold-soft">
-              {section}
-            </Link>
-          </p>
-          <h1 className="text-4xl text-ivory sm:text-5xl lg:text-[3.25rem]">{content.title}</h1>
-          {content.excerpt && <p className="text-xl text-grey sm:text-2xl/relaxed">{content.excerpt}</p>}
+        <div className={cn(trending.length > 0 && "lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_18rem]")}>
+          <div className="min-w-0">
+            <header className="mx-auto max-w-3xl space-y-5">
+              <Breadcrumb
+                label={dict.nav.breadcrumb}
+                items={[
+                  { href: `/${locale}`, label: dict.nav.home },
+                  { href: categoryPath(locale, article.categorySlug), label: section },
+                ]}
+              />
+              <p className="text-xs font-medium tracking-[0.14em] text-gold uppercase">
+                <Link href={categoryPath(locale, article.categorySlug)} className="hover:text-gold-soft">
+                  {section}
+                </Link>
+              </p>
+              <h1 className="text-4xl text-ivory sm:text-5xl lg:text-[3.25rem]">{content.title}</h1>
+              {content.excerpt && <p className="text-xl text-grey sm:text-2xl/relaxed">{content.excerpt}</p>}
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-border py-4 text-sm text-grey">
-            <span>
-              {dict.article.by} <span className="text-ivory">{byline(article.authorName, dict)}</span>
-            </span>
-            <span aria-hidden className="text-grey-dim">·</span>
-            <span>
-              <span className="sr-only">{dict.article.published} </span>
-              <time dateTime={article.publishedAt}>{formatPublicDate(article.publishedAt, locale)}</time>
-            </span>
-            {updated && (
-              <>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-border py-4 text-sm text-grey">
+                <span>
+                  {dict.article.by} <span className="text-ivory">{byline(article.authorName, dict)}</span>
+                </span>
                 <span aria-hidden className="text-grey-dim">·</span>
                 <span>
-                  {dict.article.updated} <time dateTime={article.updatedAt}>{formatPublicDate(article.updatedAt, locale)}</time>
+                  <span className="sr-only">{dict.article.published} </span>
+                  <time dateTime={article.publishedAt}>{formatPublicDate(article.publishedAt, locale)}</time>
                 </span>
-              </>
+                {updated && (
+                  <>
+                    <span aria-hidden className="text-grey-dim">·</span>
+                    <span>
+                      {dict.article.updated} <time dateTime={article.updatedAt}>{formatPublicDate(article.updatedAt, locale)}</time>
+                    </span>
+                  </>
+                )}
+                <span aria-hidden className="text-grey-dim">·</span>
+                <span>{fill(dict.common.minRead, { minutes: content.readingMinutes })}</span>
+                <span aria-hidden className="text-grey-dim">·</span>
+                <CommentCount articleId={article.id} labels={dict.comments} />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <ReaderTools articleId={article.id} locale={locale} dict={dict} hasAudio={content.hasAudio} />
+              </div>
+              <ShareBar url={siteUrl(path)} title={content.title} labels={dict.article} />
+            </header>
+
+            <AdSlot placement="article-top" locale={locale} />
+
+            {article.coverImageUrl && (
+              <figure className="mx-auto mt-10 max-w-4xl">
+                <Image
+                  src={article.coverImageUrl}
+                  alt={article.coverImageAlt ?? ""}
+                  width={1600}
+                  height={900}
+                  sizes="(min-width: 1024px) 896px, 100vw"
+                  priority
+                  className="aspect-video w-full rounded-sm object-cover"
+                />
+              </figure>
             )}
-            <span aria-hidden className="text-grey-dim">·</span>
-            <span>{fill(dict.common.minRead, { minutes: content.readingMinutes })}</span>
-            <span aria-hidden className="text-grey-dim">·</span>
-            <CommentCount articleId={article.id} labels={dict.comments} />
+
+            <div id="article-body" className="mx-auto mt-10 max-w-3xl space-y-12">
+              <ArticleBody
+                doc={content.body}
+                locale={locale}
+                className="kt-article-body"
+                inline={<AdSlot placement="article-inline" locale={locale} />}
+              />
+
+              {article.tags.length > 0 && (
+                <section aria-labelledby="article-tags" className="space-y-3">
+                  <h2 id="article-tags" className="text-sm font-medium tracking-[0.12em] text-gold uppercase">
+                    {dict.article.tags}
+                  </h2>
+                  <ul className="flex flex-wrap gap-2">
+                    {article.tags.map((tag) => (
+                      <li key={tag.id}>
+                        <Link
+                          href={`/${locale}/tags/${tag.slug}`}
+                          lang={locale === "ur" && !tag.nameUr ? "en" : undefined}
+                          className="inline-block rounded-sm bg-obsidian-raised px-3 py-1.5 text-sm text-ivory transition-colors hover:bg-gold hover:text-black focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        >
+                          {tagName(tag, locale)}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              <section aria-labelledby="share-bottom" className="space-y-3 border-t border-border pt-8">
+                <h2 id="share-bottom" className="text-lg text-ivory">
+                  {dict.article.share}
+                </h2>
+                <ShareBar url={siteUrl(path)} title={content.title} labels={dict.article} />
+              </section>
+
+              {features.newsletterEnabled && <SignupBox locale={locale} labels={newsletterLabels(dict)} variant="inline" />}
+
+              <AdSlot placement="article-bottom" locale={locale} />
+
+              <section aria-labelledby="comments" className="space-y-4">
+                <h2 id="comments" className="scroll-mt-28 text-2xl text-ivory">
+                  {dict.article.comments}
+                </h2>
+                {/* Loaded in the browser when scrolled near, so moderation never needs a page rebuild. */}
+                <LazyComments
+                  articleId={article.id}
+                  locale={locale}
+                  labels={{ ...dict.comments, signIn: dict.bookmarks.signIn, signUp: dict.bookmarks.signUp, adminBadge: dict.site.name }}
+                />
+              </section>
+            </div>
           </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <ReaderTools articleId={article.id} locale={locale} dict={dict} hasAudio={content.hasAudio} />
-          </div>
-          <ShareBar url={siteUrl(path)} title={content.title} labels={dict.article} />
-        </header>
-
-        <AdSlot placement="article-top" locale={locale} />
-
-        {article.coverImageUrl && (
-          <figure className="mx-auto mt-10 max-w-4xl">
-            <Image
-              src={article.coverImageUrl}
-              alt={article.coverImageAlt ?? ""}
-              width={1600}
-              height={900}
-              sizes="(min-width: 1024px) 896px, 100vw"
-              priority
-              className="aspect-video w-full rounded-sm object-cover"
-            />
-          </figure>
-        )}
-
-        <div id="article-body" className="mx-auto mt-10 max-w-3xl space-y-12">
-          <ArticleBody
-            doc={content.body}
-            locale={locale}
-            className="kt-article-body"
-            inline={<AdSlot placement="article-inline" locale={locale} />}
-          />
-
-          {article.tags.length > 0 && (
-            <section aria-labelledby="article-tags" className="space-y-3">
-              <h2 id="article-tags" className="text-sm font-medium tracking-[0.12em] text-gold uppercase">
-                {dict.article.tags}
-              </h2>
-              <ul className="flex flex-wrap gap-2">
-                {article.tags.map((tag) => (
-                  <li key={tag.id}>
-                    <Link
-                      href={`/${locale}/tags/${tag.slug}`}
-                      lang={locale === "ur" && !tag.nameUr ? "en" : undefined}
-                      className="inline-block rounded-sm bg-obsidian-raised px-3 py-1.5 text-sm text-ivory transition-colors hover:bg-gold hover:text-black focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    >
-                      {tagName(tag, locale)}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
+          {trending.length > 0 && (
+            <aside aria-label={dict.home.trendingTitle} className="mt-16 border-t border-border pt-8 lg:mt-0 lg:border-t-0 lg:pt-0">
+              <div className="lg:sticky lg:top-28">
+                <TrendingList
+                  locale={locale}
+                  items={trending}
+                  labels={{ title: dict.home.trendingTitle, description: dict.home.trendingDescription }}
+                  variant="sidebar"
+                />
+              </div>
+            </aside>
           )}
-
-          <section aria-labelledby="share-bottom" className="space-y-3 border-t border-border pt-8">
-            <h2 id="share-bottom" className="text-lg text-ivory">
-              {dict.article.share}
-            </h2>
-            <ShareBar url={siteUrl(path)} title={content.title} labels={dict.article} />
-          </section>
-
-          {features.newsletterEnabled && <SignupBox locale={locale} labels={newsletterLabels(dict)} variant="inline" />}
-
-          <AdSlot placement="article-bottom" locale={locale} />
-
-          <section aria-labelledby="comments" className="space-y-4">
-            <h2 id="comments" className="scroll-mt-28 text-2xl text-ivory">
-              {dict.article.comments}
-            </h2>
-            {/* Loaded in the browser when scrolled near, so moderation never needs a page rebuild. */}
-            <LazyComments
-              articleId={article.id}
-              locale={locale}
-              labels={{ ...dict.comments, signIn: dict.bookmarks.signIn, signUp: dict.bookmarks.signUp, adminBadge: dict.site.name }}
-            />
-          </section>
         </div>
       </article>
 

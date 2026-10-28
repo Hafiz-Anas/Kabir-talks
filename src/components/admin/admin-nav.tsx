@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, FileText, FolderTree, Inbox, LayoutDashboard, type LucideIcon, Mail, Megaphone, MessageSquare, Settings } from "lucide-react";
+import { FileText, FolderTree, Inbox, LayoutDashboard, type LucideIcon, Mail, Megaphone, MessageSquare, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -21,7 +21,6 @@ const ACTIVE: NavItem[] = [
 
 // Later phases: shown greyed out so the admin knows what's coming.
 const UPCOMING: NavItem[] = [
-  { label: "Analytics", icon: BarChart3 },
   { label: "Settings", icon: Settings },
 ];
 

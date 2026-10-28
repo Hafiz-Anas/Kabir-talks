@@ -1,11 +1,10 @@
-import { TrendingUp } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AdSlot } from "@/components/ad-slot";
 import { ArticleCard } from "@/components/articles/article-card";
 import { LoadMore } from "@/components/articles/load-more";
-import { ComingSoonStrip } from "@/components/coming-soon-strip";
+import { TrendingList } from "@/components/articles/trending-list";
 import { newsletterLabels } from "@/components/newsletter/labels";
 import { SignupBox } from "@/components/newsletter/signup-box";
 import { SectionHeading } from "@/components/section-heading";
@@ -15,6 +14,7 @@ import { features } from "@/lib/features";
 import { pageMetadata } from "@/lib/seo";
 import { categoryPath } from "@/lib/urls";
 import { listArticleCards, listPublicCategories } from "@/server/public/articles";
+import { listTrending } from "@/server/public/trending";
 
 // Must stay fully static (cached reads only): this is where shared links land.
 export const ensureStatic = "navigation";
@@ -48,10 +48,11 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
   if (!isLocale(locale)) notFound();
   const dict = getDictionary(locale);
 
-  const [featured, latest, categories] = await Promise.all([
+  const [featured, latest, categories, trending] = await Promise.all([
     listArticleCards({ locale, featuredOnly: true, limit: TOP_STORIES + 1 }),
     listArticleCards({ locale, limit: TOP_STORIES + 1 }),
     listPublicCategories(),
+    listTrending(locale),
   ]);
 
   if (latest.length === 0) return <EmptyHome dict={dict} />;
@@ -121,15 +122,12 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
 
       <AdSlot placement="home-feed" locale={locale} />
 
-      <div className="grid items-start gap-4 md:grid-cols-2">
-        {features.newsletterEnabled && <SignupBox locale={locale} labels={newsletterLabels(dict)} />}
-        <ComingSoonStrip
-          icon={TrendingUp}
-          title={dict.home.trendingTitle}
-          description={dict.home.trendingDescription}
-          label={dict.common.comingSoon}
-        />
-      </div>
+      {(features.newsletterEnabled || trending.length > 0) && (
+        <div className="grid items-start gap-4 md:grid-cols-2">
+          <TrendingList locale={locale} items={trending} labels={{ title: dict.home.trendingTitle, description: dict.home.trendingDescription }} />
+          {features.newsletterEnabled && <SignupBox locale={locale} labels={newsletterLabels(dict)} />}
+        </div>
+      )}
 
       {sections.map(({ category, articles }) => (
         <CategorySection key={category.id} locale={locale} dict={dict} category={category} articles={articles} />

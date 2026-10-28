@@ -5,6 +5,7 @@ import { Suspense } from "react";
 
 import { ComingSoon } from "@/components/coming-soon";
 import { AiStatusCard } from "@/components/admin/ai/ai-status-card";
+import { DailyBarChart, DailyLineChart } from "@/components/admin/charts";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { aiStatus } from "@/lib/ai/config";
 import { Button } from "@/components/ui/button";
@@ -13,8 +14,10 @@ import { requireAdmin } from "@/lib/auth-guards";
 import { emailDriver, emailTestMode, features } from "@/lib/features";
 import { formatDateTime } from "@/lib/format";
 import { getAiUsageToday } from "@/server/ai/limits";
+import { dailyViews, topArticles, viewsByCategory, viewTotals } from "@/server/analytics";
 import { getDashboardData } from "@/server/articles";
 import { pendingCommentCount } from "@/server/comments";
+import { newSubscribersSince, subscriberCounts, subscriberGrowth } from "@/server/newsletter/admin";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -39,10 +42,11 @@ export default function AdminDashboardPage() {
 
 async function Dashboard() {
   await requireAdmin();
-  const [{ stats, recent }, pendingComments, aiUsage] = await Promise.all([
+  const [{ stats, recent }, pendingComments, aiUsage, readers] = await Promise.all([
     getDashboardData(),
     pendingCommentCount(),
     getAiUsageToday(),
+    readerStats(),
   ]);
 
   const cards = [
@@ -78,6 +82,8 @@ async function Dashboard() {
           </li>
         ))}
       </ul>
+
+      <Readers {...readers} />
 
       <section aria-labelledby="recent" className="space-y-4">
         <div className="flex items-center justify-between">
@@ -145,6 +151,115 @@ async function Dashboard() {
         </ul>
       </section>
     </>
+  );
+}
+
+async function readerStats() {
+  const [totals, daily, top, byCategory, subscribers, growth, newSubscribers] = await Promise.all([
+    viewTotals(),
+    dailyViews(30),
+    topArticles(30, 10),
+    viewsByCategory(30),
+    subscriberCounts(),
+    subscriberGrowth(30),
+    newSubscribersSince(new Date(Date.now() - 30 * 86_400_000)),
+  ]);
+  return { totals, daily, top, byCategory, subscribers, growth, newSubscribers };
+}
+
+/** Views (counted once per reader per article per day; admins and bots excluded) and newsletter growth. */
+function Readers({ totals, daily, top, byCategory, subscribers, growth, newSubscribers }: Awaited<ReturnType<typeof readerStats>>) {
+  const tiles = [
+    { label: "Views today", value: totals.today },
+    { label: "Views, 7 days", value: totals.week },
+    { label: "Views, 30 days", value: totals.month },
+    { label: "Newsletter subscribers", value: subscribers.active, note: newSubscribers ? `+${newSubscribers} in 30 days` : undefined, href: "/admin/newsletter" },
+  ];
+  const categoryMax = Math.max(1, ...byCategory.map((c) => c.views));
+
+  return (
+    <section aria-labelledby="readers" className="space-y-6">
+      <div className="space-y-1">
+        <h2 id="readers" className="text-xl text-ivory">
+          Readers
+        </h2>
+        <p className="text-sm text-grey">Each reader counts once per article per day. Admins, bots and link previews aren’t counted. Days are Pakistan time.</p>
+      </div>
+      <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {tiles.map((tile) => {
+          const body = (
+            <>
+              <p className="text-sm text-grey">{tile.label}</p>
+              <p className="mt-2 font-serif text-4xl text-ivory tabular-nums">{tile.value.toLocaleString("en-GB")}</p>
+              {tile.note && <p className="mt-1 text-xs text-gold">{tile.note}</p>}
+            </>
+          );
+          return (
+            <li key={tile.label}>
+              {tile.href ? (
+                <Link href={tile.href} className="block rounded-md border border-border bg-obsidian p-5 transition-colors hover:border-gold-muted">
+                  {body}
+                </Link>
+              ) : (
+                <div className="rounded-md border border-border bg-obsidian p-5">{body}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="space-y-2 rounded-md border border-border bg-obsidian p-5">
+        <h3 className="font-sans text-sm text-ivory">Views per day, last 30 days</h3>
+        <DailyBarChart title="Views per day" unit="Views" points={daily.map((d) => ({ date: d.date, value: d.views }))} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-3 rounded-md border border-border bg-obsidian p-5">
+          <h3 className="font-sans text-sm text-ivory">Top articles, 30 days</h3>
+          {top.length === 0 ? (
+            <p className="text-sm text-grey">No views yet.</p>
+          ) : (
+            <ol className="space-y-2 text-sm">
+              {top.map((article, index) => (
+                <li key={article.id} className="flex items-baseline gap-3">
+                  <span className="w-5 shrink-0 text-end text-grey tabular-nums">{index + 1}</span>
+                  <Link href={`/admin/articles/${article.id}`} className="min-w-0 flex-1 truncate text-ivory hover:text-gold-soft">
+                    {article.titleEn ?? (
+                      <span lang="ur" dir="rtl" className="font-urdu">
+                        {article.titleUr}
+                      </span>
+                    )}
+                  </Link>
+                  {article.status !== "PUBLISHED" && <StatusBadge status={article.status} />}
+                  <span className="text-ivory tabular-nums">{article.views.toLocaleString("en-GB")}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+        <div className="space-y-3 rounded-md border border-border bg-obsidian p-5">
+          <h3 className="font-sans text-sm text-ivory">Views per category, 30 days</h3>
+          <ul className="space-y-3 text-sm">
+            {byCategory.map((category) => (
+              <li key={category.id} className="space-y-1">
+                <div className="flex justify-between gap-3">
+                  <span className="text-grey">{category.nameEn}</span>
+                  <span className="text-ivory tabular-nums">{category.views.toLocaleString("en-GB")}</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-obsidian-raised" aria-hidden>
+                  <div className="h-full rounded-full bg-gold" style={{ width: `${(category.views / categoryMax) * 100}%` }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className="space-y-2 rounded-md border border-border bg-obsidian p-5">
+        <h3 className="font-sans text-sm text-ivory">Active newsletter subscribers, last 30 days</h3>
+        <DailyLineChart title="Active newsletter subscribers" unit="Subscribers" points={growth.map((g) => ({ date: g.day, value: g.active }))} />
+      </div>
+    </section>
   );
 }
 

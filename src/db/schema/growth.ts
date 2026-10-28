@@ -166,5 +166,23 @@ export const articleViews = pgTable(
     date: date("date", { mode: "string" }).notNull(),
     count: integer("count").default(0).notNull(),
   },
-  (table) => [primaryKey({ columns: [table.articleId, table.date] })],
+  (table) => [primaryKey({ columns: [table.articleId, table.date] }), index("article_views_date_idx").on(table.date)],
+);
+
+/**
+ * Phase 7: who already counted for an article today, so each visitor counts
+ * once per article per day. `visitorHash` is an HMAC of IP + user agent with
+ * a key that changes every day (src/server/views.ts): it can't be turned back
+ * into an IP, nor linked across days. Rows older than two days are deleted.
+ */
+export const articleViewVisitors = pgTable(
+  "article_view_visitors",
+  {
+    articleId: uuid("article_id")
+      .notNull()
+      .references(() => articles.id, { onDelete: "cascade" }),
+    date: date("date", { mode: "string" }).notNull(),
+    visitorHash: text("visitor_hash").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.articleId, table.date, table.visitorHash] }), index("article_view_visitors_date_idx").on(table.date)],
 );
