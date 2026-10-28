@@ -1,4 +1,4 @@
-import { index, pgEnum, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { index, jsonb, pgEnum, pgTable, text, uuid } from "drizzle-orm/pg-core";
 
 import { createdAt, localeEnum } from "./_shared";
 
@@ -25,6 +25,8 @@ export const emailOutbox = pgTable(
     status: emailStatusEnum("status").notNull(),
     html: text("html"),
     text: text("text"),
+    // Extra headers, e.g. List-Unsubscribe. Like html/text, kept only by the log driver (they hold link tokens).
+    headers: jsonb("headers").$type<Record<string, string>>(),
     // Resend's message id, or the error message when status = failed (never the message itself).
     providerId: text("provider_id"),
     error: text("error"),

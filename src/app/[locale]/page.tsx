@@ -1,4 +1,4 @@
-import { Mail, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -6,9 +6,12 @@ import { AdSlot } from "@/components/ad-slot";
 import { ArticleCard } from "@/components/articles/article-card";
 import { LoadMore } from "@/components/articles/load-more";
 import { ComingSoonStrip } from "@/components/coming-soon-strip";
+import { newsletterLabels } from "@/components/newsletter/labels";
+import { SignupBox } from "@/components/newsletter/signup-box";
 import { SectionHeading } from "@/components/section-heading";
 import { cardLabels, type Dictionary, getDictionary, isLocale, type Locale } from "@/i18n";
 import { type ArticleCardData, FEED_PAGE_SIZE } from "@/lib/articles/public";
+import { features } from "@/lib/features";
 import { pageMetadata } from "@/lib/seo";
 import { categoryPath } from "@/lib/urls";
 import { listArticleCards, listPublicCategories } from "@/server/public/articles";
@@ -118,13 +121,8 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
 
       <AdSlot placement="home-feed" />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <ComingSoonStrip
-          icon={Mail}
-          title={dict.home.newsletterTitle}
-          description={dict.home.newsletterDescription}
-          label={dict.common.comingSoon}
-        />
+      <div className="grid items-start gap-4 md:grid-cols-2">
+        {features.newsletterEnabled && <SignupBox locale={locale} labels={newsletterLabels(dict)} />}
         <ComingSoonStrip
           icon={TrendingUp}
           title={dict.home.trendingTitle}

@@ -120,6 +120,12 @@ const serverSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.enum(["0", "1", "false", "true"]).optional(),
   ),
+  // Newsletter queue endpoint for a cron job (POST /api/cron/newsletter). Unset → the endpoint is off;
+  // `npm run newsletter:process` works either way.
+  NEWSLETTER_CRON_SECRET: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(32, "must be at least 32 characters (e.g. openssl rand -hex 32)").optional(),
+  ),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;

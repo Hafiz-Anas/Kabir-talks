@@ -92,6 +92,7 @@ export async function sendEmail(message: OutgoingEmail): Promise<SendResult> {
       status: result.ok ? "sent" : "failed",
       html: emailDriver === "log" ? message.html : null,
       text: emailDriver === "log" ? message.text : null,
+      headers: emailDriver === "log" ? (message.headers ?? null) : null,
       providerId: result.ok ? result.id : null,
       error: result.ok ? null : result.error,
     });

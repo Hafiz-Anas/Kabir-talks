@@ -71,6 +71,20 @@
       "when": 1793168361987,
       "tag": "0009_email_outbox",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793169231016,
+      "tag": "0010_newsletter",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793170555711,
+      "tag": "0011_newsletter_drop_plain_token",
+      "breakpoints": true
     }
   ]
 }

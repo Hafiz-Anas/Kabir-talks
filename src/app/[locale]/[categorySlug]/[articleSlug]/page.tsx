@@ -12,9 +12,12 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { CommentCount } from "@/components/comments/comment-count";
 import { LazyComments } from "@/components/comments/lazy-comments";
 import { ArticleBody } from "@/components/content/article-body";
+import { newsletterLabels } from "@/components/newsletter/labels";
+import { SignupBox } from "@/components/newsletter/signup-box";
 import { SetLocaleAlternates } from "@/components/layout/locale-alternates";
 import { cardLabels, type Dictionary, fill, getDictionary, isLocale, type Locale, locales } from "@/i18n";
 import { significantUpdate, tagName } from "@/lib/articles/public";
+import { features } from "@/lib/features";
 import { docToPlainText } from "@/lib/content/document";
 import { formatPublicDate } from "@/lib/format";
 import { articleShareImage, metaDescription, pageMetadata, siteUrl } from "@/lib/seo";
@@ -209,6 +212,8 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
             </h2>
             <ShareBar url={siteUrl(path)} title={content.title} labels={dict.article} />
           </section>
+
+          {features.newsletterEnabled && <SignupBox locale={locale} labels={newsletterLabels(dict)} variant="inline" />}
 
           <AdSlot placement="article-bottom" />
 

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition
 
 import { AiSuggest } from "@/components/admin/ai/ai-suggest";
 import { ReaderAiPanel } from "@/components/admin/ai/reader-ai-panel";
+import { ArticleNewsletterPanel, type ArticleNewsletterStatus } from "@/components/admin/newsletter-controls";
 import { TranslateButton } from "@/components/admin/ai/translate-button";
 import { type DraftApplyMode, WritePanel } from "@/components/admin/ai/write-panel";
 import type { ReaderAiStatus } from "@/lib/ai/reader";
@@ -107,6 +108,8 @@ type Props = {
   aiEnabled: boolean;
   /** Phase 6: summary state for the saved article (null for a new article or without AI). */
   readerAi?: ReaderAiStatus | null;
+  /** Phase 7: newsletter state (features.newsletterEnabled and the article's send, if any). */
+  newsletter?: { enabled: boolean; status: ArticleNewsletterStatus | null };
 };
 
 type Locale = "en" | "ur";
@@ -127,6 +130,7 @@ export function ArticleEditor({
   siteUrl,
   aiEnabled,
   readerAi = null,
+  newsletter = { enabled: false, status: null },
 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<Form>(() => {
@@ -748,6 +752,15 @@ export function ArticleEditor({
 
           <Panel title="Reader AI">
             <ReaderAiPanel articleId={id ?? null} aiEnabled={aiEnabled} initial={readerAi} savedKey={lastSaved} dirty={dirty} />
+          </Panel>
+
+          <Panel title="Newsletter">
+            <ArticleNewsletterPanel
+              articleId={id ?? null}
+              published={status === "PUBLISHED"}
+              enabled={newsletter.enabled}
+              status={newsletter.status}
+            />
           </Panel>
         </aside>
       </div>

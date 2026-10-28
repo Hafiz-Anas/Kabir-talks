@@ -2,7 +2,10 @@ import { cacheLife } from "next/cache";
 import Link from "next/link";
 
 import { ComingSoon } from "@/components/coming-soon";
+import { newsletterLabels } from "@/components/newsletter/labels";
+import { SignupBox } from "@/components/newsletter/signup-box";
 import type { Dictionary, Locale } from "@/i18n";
+import { features } from "@/lib/features";
 import { categoryPath } from "@/lib/urls";
 import { listPublicCategories } from "@/server/public/articles";
 
@@ -28,6 +31,11 @@ export async function Footer({ locale, dict }: { locale: Locale; dict: Dictionar
         <div className="space-y-4 sm:col-span-2 md:col-span-1">
           <Logo href={`/${locale}`} label={dict.nav.homeLink} />
           <p className="max-w-sm text-sm text-grey">{dict.site.tagline}</p>
+          {features.newsletterEnabled && (
+            <div className="max-w-sm pt-2">
+              <SignupBox locale={locale} labels={newsletterLabels(dict)} variant="footer" />
+            </div>
+          )}
         </div>
 
         <nav aria-label={dict.footer.sections} className="space-y-3 text-sm">

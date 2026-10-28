@@ -17,7 +17,9 @@
     "storage:setup": "tsx scripts/setup-storage.ts",
     "verify:content": "tsx scripts/verify-content.ts",
     "verify:ai": "tsx scripts/verify-ai.ts",
-    "verify:readers": "tsx scripts/verify-readers.ts"
+    "verify:readers": "tsx scripts/verify-readers.ts",
+    "newsletter:process": "tsx --conditions=react-server scripts/newsletter.ts process",
+    "newsletter:digest": "tsx --conditions=react-server scripts/newsletter.ts digest"
   },
   "dependencies": {
     "@google/genai": "2.27.0",

@@ -21,8 +21,10 @@ export type EmailContent = {
   heading: string;
   paragraphs: string[];
   button?: { label: string; url: string };
-  /** Article links (newsletter and digest emails). */
+  /** Article links (newsletter emails). */
   items?: EmailItem[];
+  /** Article links under sub-headings, e.g. "In English" and "In Urdu" in a digest. */
+  groups?: { title: string; lang: Locale; items: EmailItem[] }[];
   /** Small print under the content, e.g. "If you didn't ask for this…". */
   note?: string;
   /** Shown above the raw link when there is a button. */
@@ -72,16 +74,34 @@ export function renderEmail(content: EmailContent): { html: string; text: string
       `</td></tr></table>`
     : "";
 
-  const items = (content.items ?? [])
-    .map(
-      (item) =>
-        `<tr><td style="padding:16px 0;border-top:1px solid ${COLORS.rule};">` +
-        (item.meta ? `<p style="margin:0 0 4px;color:${COLORS.gold};font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">${e(item.meta)}</p>` : "") +
-        `<a href="${e(safeUrl(item.url))}" style="color:${COLORS.ivory};font-family:${headingFont};font-size:19px;line-height:${rtl ? "1.9" : "1.35"};text-decoration:none;">${e(item.title)}</a>` +
-        (item.excerpt ? `<p style="margin:6px 0 0;color:${COLORS.grey};font-size:14px;line-height:${lineHeight};">${e(item.excerpt)}</p>` : "") +
-        `</td></tr>`,
-    )
-    .join("");
+  // Each story is laid out in its own language (a digest can mix English and Urdu).
+  const itemRows = (list: EmailItem[], lang: Locale) => {
+    const itemRtl = lang === "ur";
+    const font = itemRtl ? FONT.ur : FONT.en;
+    const lh = itemRtl ? "2" : "1.6";
+    return list
+      .map(
+        (item) =>
+          `<tr><td lang="${lang}" dir="${itemRtl ? "rtl" : "ltr"}" style="padding:16px 0;border-top:1px solid ${COLORS.rule};text-align:${itemRtl ? "right" : "left"};font-family:${itemRtl ? FONT.ur : FONT.enSans};">` +
+          (item.meta ? `<p style="margin:0 0 4px;color:${COLORS.gold};font-size:12px;letter-spacing:${itemRtl ? "0" : "0.08em"};text-transform:uppercase;">${e(item.meta)}</p>` : "") +
+          `<a href="${e(safeUrl(item.url))}" style="color:${COLORS.ivory};font-family:${font};font-size:19px;line-height:${itemRtl ? "1.9" : "1.35"};text-decoration:none;">${e(item.title)}</a>` +
+          (item.excerpt ? `<p style="margin:6px 0 0;color:${COLORS.grey};font-size:14px;line-height:${lh};">${e(item.excerpt)}</p>` : "") +
+          `</td></tr>`,
+      )
+      .join("");
+  };
+  const table = (rows: string) =>
+    rows ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 16px;">${rows}</table>` : "";
+  const items =
+    table(itemRows(content.items ?? [], locale)) +
+    (content.groups ?? [])
+      .filter((group) => group.items.length > 0)
+      .map(
+        (group) =>
+          `<h2 style="margin:24px 0 4px;color:${COLORS.gold};font-family:${headingFont};font-size:17px;font-weight:normal;">${e(group.title)}</h2>` +
+          table(itemRows(group.items, group.lang)),
+      )
+      .join("");
 
   const fallback =
     content.button && content.linkFallback
@@ -120,7 +140,7 @@ ${preheader}
 </td></tr>
 <tr><td style="padding:32px 28px 16px;text-align:${align};font-family:${bodyFont};" lang="${locale}">
 <h1 style="margin:0 0 20px;color:${COLORS.ivory};font-family:${headingFont};font-size:26px;font-weight:normal;line-height:${rtl ? "1.9" : "1.3"};">${e(content.heading)}</h1>
-${paragraphs}${button}${items ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 16px;">${items}</table>` : ""}${fallback}${note}
+${paragraphs}${button}${items}${fallback}${note}
 </td></tr>
 <tr><td style="padding:20px 28px;border-top:1px solid ${COLORS.rule};text-align:${align};font-family:${bodyFont};color:${COLORS.grey};font-size:12px;line-height:${lineHeight};" lang="${locale}">
 ${e(content.footer)}${unsubscribe}
@@ -138,13 +158,20 @@ ${e(content.footer)}${unsubscribe}
     "",
     ...content.paragraphs.flatMap((p) => [p, ""]),
     ...(content.button ? [`${content.button.label}: ${content.button.url}`, ""] : []),
-    ...(content.items ?? []).flatMap((item) => [
-      ...(item.meta ? [item.meta] : []),
-      item.title,
-      ...(item.excerpt ? [item.excerpt] : []),
-      item.url,
-      "",
-    ]),
+    ...[{ title: "", items: content.items ?? [] }, ...(content.groups ?? [])].flatMap((group) =>
+      group.items.length === 0
+        ? []
+        : [
+            ...(group.title ? [`== ${group.title} ==`, ""] : []),
+            ...group.items.flatMap((item) => [
+              ...(item.meta ? [item.meta] : []),
+              item.title,
+              ...(item.excerpt ? [item.excerpt] : []),
+              item.url,
+              "",
+            ]),
+          ],
+    ),
     ...(content.note ? [content.note, ""] : []),
     "--",
     content.footer,
