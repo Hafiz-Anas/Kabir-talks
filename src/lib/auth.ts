@@ -16,7 +16,7 @@ export type UserRole = (typeof USER_ROLES)[number];
 /**
  * Per-IP limits for the auth endpoints, stored in the rate_limit table so
  * they hold across serverless instances. The IP comes from x-forwarded-for
- * (set by Vercel). Rules are matched in order; everything else (session
+ * (set by the reverse proxy). Rules are matched in order; everything else (session
  * reads, sign-out, OAuth callbacks) is not limited, so reading the session on
  * every page view never writes to the database.
  */

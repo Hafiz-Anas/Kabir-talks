@@ -23,7 +23,7 @@ const globalForDb = globalThis as unknown as {
 const client = (globalForDb.pgClient ??= postgres(env.DATABASE_URL, {
   prepare: false,
   // Serverless instances keep their pools tiny; the transaction pooler
-  // multiplexes. Keep DATABASE_POOL_MAX at 1-3 on Vercel; 1 for PGlite.
+  // multiplexes. DATABASE_POOL_MAX: 5-10 for one server process; 1 for PGlite.
   max: env.DATABASE_POOL_MAX ?? (env.NODE_ENV === "production" ? 1 : 5),
 }));
 

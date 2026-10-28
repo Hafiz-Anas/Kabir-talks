@@ -17,8 +17,8 @@ import { articleImages, imagePrefix } from "./storage";
  *  1. createImageUpload: validates the declared type/size and returns a
  *     short-lived signed upload URL for a fresh, unguessable path
  *     (articles/{yyyy}/{mm}/{uuid}.{ext}). The browser PUTs the file straight
- *     to Supabase, which allows real progress events and avoids Vercel's
- *     4.5 MB request-body limit.
+ *     to Supabase, which allows real progress events and keeps large
+ *     files away from the app server.
  *  2. finalizeImageUpload: downloads what was stored, checks the real size
  *     and the file's magic bytes, and deletes it if it isn't an allowed
  *     image. Only then is the public URL returned to the editor.

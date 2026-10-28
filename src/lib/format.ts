@@ -1,5 +1,5 @@
 /**
- * Display timezone for dates rendered on the server (Vercel runs in UTC).
+ * Display timezone for dates rendered on the server (servers usually run in UTC).
  * Change here if the newsroom works in a different zone.
  */
 export const SITE_TIME_ZONE = "Asia/Karachi";

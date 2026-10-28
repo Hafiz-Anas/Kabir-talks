@@ -78,7 +78,7 @@ export function bodyError(error: z.ZodError): CommentErrorCode {
   return message === "empty" || message === "too_long" ? message : "invalid";
 }
 
-/** The visitor's IP for per-IP limits (Vercel sets x-forwarded-for; the first entry is the client). */
+/** The visitor's IP for per-IP limits (the reverse proxy sets x-forwarded-for; the first entry is the client). */
 export function clientIp(request: Request) {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return forwarded || request.headers.get("x-real-ip")?.trim() || "unknown";
