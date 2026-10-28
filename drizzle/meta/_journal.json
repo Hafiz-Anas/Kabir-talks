@@ -64,6 +64,13 @@
       "when": 1792998061718,
       "tag": "0008_ai_audio",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793168361987,
+      "tag": "0009_email_outbox",
+      "breakpoints": true
     }
   ]
 }

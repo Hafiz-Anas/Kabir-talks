@@ -102,8 +102,24 @@ const serverSchema = z.object({
     z.coerce.number().int().min(0).max(10_000).optional(),
   ),
 
-  // Newsletter email provider (optional, Phase 7)
+  // Email (Phase 7, src/server/email). Real sending needs BOTH the key and a sender
+  // address on a domain verified in Resend; otherwise emails go to the log driver.
   RESEND_API_KEY: optional,
+  EMAIL_FROM: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z
+      .string()
+      .regex(/^(?:[^<>@\r\n]{1,80} <[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+>|[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+)$/, {
+        message: 'must be an address, e.g. "Kabir Talks <news@kabirtalks.com>" or news@kabirtalks.com',
+      })
+      .optional(),
+  ),
+  // Local testing only: treat the log driver as a real sender, so account emails and the
+  // newsletter switch on and their links can be read from /admin/emails. Never on a live server.
+  EMAIL_TEST_MODE: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.enum(["0", "1", "false", "true"]).optional(),
+  ),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;

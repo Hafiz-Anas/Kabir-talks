@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, FolderTree, LayoutDashboard, type LucideIcon, Megaphone, MessageSquare, BarChart3, Mail, Settings } from "lucide-react";
+import { BarChart3, FileText, FolderTree, Inbox, LayoutDashboard, type LucideIcon, Mail, Megaphone, MessageSquare, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -14,6 +14,7 @@ const ACTIVE: NavItem[] = [
   { label: "Articles", href: "/admin/articles", icon: FileText },
   { label: "Categories", href: "/admin/categories", icon: FolderTree },
   { label: "Comments", href: "/admin/comments", icon: MessageSquare },
+  { label: "Email outbox", href: "/admin/emails", icon: Inbox },
 ];
 
 // Later phases: shown greyed out so the admin knows what's coming.

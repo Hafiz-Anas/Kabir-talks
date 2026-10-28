@@ -10,7 +10,7 @@ import { aiStatus } from "@/lib/ai/config";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth-guards";
-import { features } from "@/lib/features";
+import { emailDriver, emailTestMode, features } from "@/lib/features";
 import { formatDateTime } from "@/lib/format";
 import { getAiUsageToday } from "@/server/ai/limits";
 import { getDashboardData } from "@/server/articles";
@@ -56,8 +56,12 @@ async function Dashboard() {
   const flags = [
     { label: "Image uploads (Supabase Storage)", enabled: features.storageEnabled },
     { label: "Google sign-in", enabled: features.googleAuthEnabled },
-    { label: "Newsletter (Resend)", enabled: features.newsletterEnabled },
-  ];
+    {
+      label: "Email sending (Resend)",
+      enabled: emailDriver === "resend",
+      note: emailTestMode ? "Test mode: emails go to the outbox only" : undefined,
+    },
+  ] as { label: string; enabled: boolean; note?: string }[];
 
   return (
     <>
@@ -127,7 +131,15 @@ async function Dashboard() {
           {flags.map((flag) => (
             <li key={flag.label} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
               <span>{flag.label}</span>
-              {flag.enabled ? <span className="text-gold">Enabled</span> : <ComingSoon label="Not configured" />}
+              {flag.enabled ? (
+                <span className="text-gold">Enabled</span>
+              ) : flag.note ? (
+                <Link href="/admin/emails" className="text-end text-gold hover:text-gold-soft">
+                  {flag.note}
+                </Link>
+              ) : (
+                <ComingSoon label="Not configured" />
+              )}
             </li>
           ))}
         </ul>

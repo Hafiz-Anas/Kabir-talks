@@ -347,6 +347,8 @@ export const en = {
       button: "Choose a new password",
       ignore: "If you didn’t ask for this, you can ignore this email — your password won’t change.",
     },
+    footerAccount: "This is an account email from Kabir Talks, sent because of a request on your account.",
+    linkFallback: "If the button doesn’t work, copy this link into your browser:",
   },
   footer: {
     about: "About",

@@ -9,24 +9,33 @@ import { env } from "@/lib/env";
  * Server-only: pass the boolean down as a prop if a Client Component needs it.
  */
 /**
- * Phase 7 flips this to true once src/server/email.ts `sendEmail` actually
- * delivers mail (Resend). Until then a RESEND_API_KEY alone must not switch
- * on email verification or password reset, or sign-ups would wait for
- * emails that never arrive.
+ * Which email driver sends mail (src/server/email):
+ *  - "resend" when RESEND_API_KEY and EMAIL_FROM are both set;
+ *  - "log" otherwise: the console plus the email_outbox table (/admin/emails).
  */
-const EMAIL_SENDER_CONNECTED: boolean = false;
+export const emailDriver: "resend" | "log" = env.RESEND_API_KEY && env.EMAIL_FROM ? "resend" : "log";
+
+/** EMAIL_TEST_MODE=1: local testing treats the log driver as connected. */
+export const emailTestMode = emailDriver === "log" && (env.EMAIL_TEST_MODE === "1" || env.EMAIL_TEST_MODE === "true");
+
+/**
+ * Readers can receive email: a real provider, or test mode. Account emails and
+ * the newsletter depend on it, so nobody waits for an email that only went to the log.
+ */
+const emailDelivery = emailDriver === "resend" || emailTestMode;
 
 export const features = {
   /** A real Gemini key, or AI_PROVIDER=mock in development only (src/lib/ai/config.ts). */
   aiEnabled: aiStatus.mode !== "off",
   googleAuthEnabled: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
-  newsletterEnabled: Boolean(env.RESEND_API_KEY),
+  /** Newsletter sign-up and sends (Phase 7). Off → no sign-up box is shown. */
+  newsletterEnabled: emailDelivery,
   /**
    * Account emails (Phase 5 code, switched on in Phase 7): sign-up email
    * verification and "Forgot password?". Off → sign-up needs no verification
    * and Forgot password shows <ComingSoon />.
    */
-  authEmailEnabled: Boolean(env.RESEND_API_KEY) && EMAIL_SENDER_CONNECTED,
+  authEmailEnabled: emailDelivery,
   /** Image uploads to Supabase Storage (Phase 2). */
   storageEnabled: Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY),
 } as const;

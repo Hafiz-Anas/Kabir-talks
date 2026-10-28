@@ -30,6 +30,25 @@ export const AUTH_RATE_LIMITS = {
   "/**": false,
 } as const;
 
+/**
+ * The language of the page a reader signed up on: the locale prefix of the
+ * verification return path, else of the sign-up page itself (Referer).
+ */
+function signUpLocale(body: unknown, headers: Headers | undefined): { preferredLocale?: string } {
+  const fromPath = (value: unknown) => {
+    if (typeof value !== "string") return undefined;
+    let path = value;
+    try {
+      path = new URL(value, "http://same.site").pathname;
+    } catch {
+      return undefined;
+    }
+    return path.match(/^\/(en|ur)(?:\/|$)/)?.[1];
+  };
+  const locale = fromPath((body as { callbackURL?: unknown } | undefined)?.callbackURL) ?? fromPath(headers?.get("referer"));
+  return locale ? { preferredLocale: locale } : {};
+}
+
 function weakPassword() {
   return new APIError("BAD_REQUEST", {
     message: `Password must be ${PASSWORD_MIN}–${PASSWORD_MAX} characters and include a letter and a number.`,
@@ -64,6 +83,8 @@ export const auth = betterAuth({
     ? {
         emailVerification: {
           sendOnSignUp: true,
+          // Signing in before confirming sends a fresh link (the sign-in rate limit still applies).
+          sendOnSignIn: true,
           autoSignInAfterVerification: true,
           sendVerificationEmail: async ({ user, url }) => sendVerificationEmail(user, url),
         },
@@ -134,6 +155,8 @@ export const auth = betterAuth({
           data: {
             ...user,
             role: "reader",
+            // Phase 7: an email sign-up from /ur/signup gets Urdu emails (verification first).
+            ...(ctx?.path === "/sign-up/email" ? signUpLocale(ctx.body, ctx.request?.headers) : {}),
             // Email sign-ups can't set a profile picture URL (Google's own photo is kept).
             image: ctx?.path === "/sign-up/email" ? null : user.image,
           },
