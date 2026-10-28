@@ -47,7 +47,7 @@ export function AiStatusCard({ status, usage }: { status: AiStatus; usage: AiUsa
           <ComingSoon label="Not configured" />
         ) : (
           <span data-testid="ai-status-label" className="inline-flex items-center gap-1.5 text-sm text-gold">
-            {result && <CheckCircle2 aria-hidden className="size-4 text-emerald-400" />}
+            {result && <CheckCircle2 aria-hidden className="size-4 text-success" />}
             {label}
           </span>
         )}
@@ -90,7 +90,7 @@ export function AiStatusCard({ status, usage }: { status: AiStatus; usage: AiUsa
             </Button>
           )}
           {result && (
-            <p role="status" className="text-sm text-emerald-400">
+            <p role="status" className="text-sm text-success">
               Connected: {result.provider === "mock" ? "mock provider" : result.model} answered in {result.ms} ms.
             </p>
           )}

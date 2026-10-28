@@ -5,6 +5,7 @@ import { AdminNav } from "@/components/admin/admin-nav";
 import { MobileNav } from "@/components/admin/mobile-nav";
 import { PublishSuccessProvider } from "@/components/admin/publish-success-provider";
 import { Logo } from "@/components/layout/logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth-guards";
 import { pendingCommentCount } from "@/server/comments";
@@ -48,6 +49,7 @@ async function AdminGate({ children }: { children: React.ReactNode }) {
             </span>
             <div className="ms-auto flex items-center gap-2 sm:gap-4">
               <span className="hidden max-w-56 truncate text-sm text-grey lg:inline">{session.user.email}</span>
+              <ThemeToggle labels={{ label: "Theme", dark: "Dark", light: "Light", system: "System" }} />
               <a
                 href="/en"
                 target="_blank"

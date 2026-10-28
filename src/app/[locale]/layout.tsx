@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { AdsScript } from "@/components/ad-slot";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
+import { ThemeScript } from "@/components/theme/theme-script";
 import { getDictionary, isLocale, localeDirection, locales } from "@/i18n";
 import { env } from "@/lib/env";
 import { fontVariables } from "@/lib/fonts";
@@ -38,7 +39,10 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
   const dict = getDictionary(locale);
 
   return (
-    <html lang={locale} dir={localeDirection[locale]} className={fontVariables}>
+    <html lang={locale} dir={localeDirection[locale]} className={fontVariables} suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body className="flex min-h-dvh flex-col">
         <a
           href="#main"

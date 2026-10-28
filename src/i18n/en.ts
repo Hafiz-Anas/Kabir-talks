@@ -419,6 +419,12 @@ export const en = {
       generic: "Something went wrong. Please try again.",
     },
   },
+  theme: {
+    label: "Theme",
+    dark: "Dark",
+    light: "Light",
+    system: "System",
+  },
   footer: {
     about: "About",
     contact: "Contact",

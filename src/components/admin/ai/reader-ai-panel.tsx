@@ -152,7 +152,7 @@ function SummaryRow({
         <span
           data-testid={`summary-${locale}-state`}
           data-state={state}
-          className={cn("text-xs", state === "ready" ? "text-emerald-400" : state === "stale" ? "text-amber-400" : "text-grey")}
+          className={cn("text-xs", state === "ready" ? "text-success" : state === "stale" ? "text-warning" : "text-grey")}
         >
           {STATE_LABEL[state]}
         </span>
@@ -253,7 +253,7 @@ function AudioRow({
         <span
           data-testid={`audio-${locale}-state`}
           data-state={state}
-          className={cn("text-xs", state === "ready" ? "text-emerald-400" : state === "stale" ? "text-amber-400" : "text-grey")}
+          className={cn("text-xs", state === "ready" ? "text-success" : state === "stale" ? "text-warning" : "text-grey")}
         >
           {AUDIO_LABEL[state]}
         </span>
@@ -280,7 +280,7 @@ function AudioRow({
             </div>
           )}
           {state === "stale" && (
-            <p className="text-xs text-amber-400">The text changed since this audio was made. Readers won’t hear it until you regenerate it.</p>
+            <p className="text-xs text-warning">The text changed since this audio was made. Readers won’t hear it until you regenerate it.</p>
           )}
 
           {task.state.status === "running" ? (

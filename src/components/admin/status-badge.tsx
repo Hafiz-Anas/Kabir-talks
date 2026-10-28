@@ -2,7 +2,7 @@ import type { ArticleStatus } from "@/lib/articles/rules";
 import { cn } from "@/lib/utils";
 
 const STYLES: Record<ArticleStatus, { label: string; className: string }> = {
-  PUBLISHED: { label: "Published", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" },
+  PUBLISHED: { label: "Published", className: "border-success/40 bg-success/10 text-success" },
   DRAFT: { label: "Draft", className: "border-gold-muted bg-gold/10 text-gold" },
   ARCHIVED: { label: "Archived", className: "border-border bg-obsidian-raised text-grey" },
 };

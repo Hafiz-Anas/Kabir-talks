@@ -86,7 +86,7 @@ export function SlugField({
           This slug is already used by another article.
         </p>
       )}
-      {!formatError && !error && availability === "available" && <p className="text-xs text-emerald-400">Available</p>}
+      {!formatError && !error && availability === "available" && <p className="text-xs text-success">Available</p>}
       {changedAfterPublish && (
         <p className="flex items-start gap-1.5 text-xs text-gold">
           <AlertTriangle aria-hidden className="mt-0.5 size-3.5 shrink-0" />

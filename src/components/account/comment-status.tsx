@@ -4,8 +4,8 @@ export type CommentStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 const STYLES: Record<CommentStatus, string> = {
   PENDING: "border-gold-muted bg-gold/10 text-gold",
-  APPROVED: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
-  REJECTED: "border-destructive/40 bg-destructive/10 text-red-300",
+  APPROVED: "border-success/40 bg-success/10 text-success",
+  REJECTED: "border-destructive/40 bg-destructive/10 text-danger",
 };
 
 /** Comment moderation state, for the reader's "My comments" list and the admin queue. */

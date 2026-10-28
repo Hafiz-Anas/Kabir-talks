@@ -5,7 +5,12 @@
 /*
  * Kabir Talks design tokens.
  * Change colours and fonts HERE only — every component reads these variables.
- * The site is dark-only by design (editorial black + antique gold).
+ * Dark (editorial black + antique gold) is the brand default. Phase 7 adds a
+ * Light theme below: the same token names with light values, chosen by the
+ * reader (components/theme/*) and applied as <html data-theme="light"> by an
+ * inline script before the first paint. The names describe the DARK look:
+ * in Light, "black" is the warm off-white page and "ivory" is the text.
+ * Emails and share images keep the dark brand look whatever the theme.
  */
 :root {
   /* Brand palette */
@@ -17,7 +22,13 @@
   --kt-gold-muted: #8a7339; /* borders, subtle rules */
   --kt-ivory: #f5f2ea;
   --kt-grey: #a19d93; /* secondary text, AA on all three backgrounds */
-  --kt-grey-dim: #6f6c65;
+  --kt-grey-dim: #8a867c; /* tertiary text, still AA (≥4.7:1) on all three backgrounds */
+  /* Status text (admin badges, success/warning notes, rejected comments). */
+  --kt-success: #6ee7b7;
+  --kt-warning: #fbbf24;
+  --kt-danger: #fca5a5;
+  /* Dialog and sheet backdrops: a dark scrim in both themes. */
+  --kt-overlay: rgb(0 0 0 / 0.5);
 
   /* shadcn/ui semantic tokens mapped onto the palette */
   --radius: 0.375rem;
@@ -43,6 +54,33 @@
   color-scheme: dark;
 }
 
+/*
+ * Light theme. Contrast (WCAG): text #111 ≥16:1; grey ≥6.1:1; gold text and
+ * links ≥4.8:1 on every surface (#FAF8F3 page, #FFF cards, #F1EDE3 raised);
+ * off-white on gold buttons 5.3:1; grey-dim and the status colours ≥4.6:1.
+ */
+:root[data-theme="light"] {
+  --kt-black: #faf8f3;
+  --kt-obsidian: #ffffff;
+  --kt-obsidian-raised: #f1ede3;
+  --kt-gold: #81630f;
+  --kt-gold-soft: #664e0b;
+  --kt-gold-muted: #c9b27a;
+  --kt-ivory: #111111;
+  --kt-grey: #5c574d;
+  --kt-grey-dim: #6b665b;
+  --kt-success: #04694c;
+  --kt-warning: #92400e;
+  --kt-danger: #b42318;
+  --kt-overlay: rgb(17 17 17 / 0.45);
+
+  --destructive: #b42318;
+  --border: rgb(17 17 17 / 0.12);
+  --input: rgb(17 17 17 / 0.2);
+
+  color-scheme: light;
+}
+
 @theme inline {
   /* Brand colours: bg-obsidian, text-gold, hover:text-gold-soft, ... */
   --color-black: var(--kt-black);
@@ -54,6 +92,10 @@
   --color-ivory: var(--kt-ivory);
   --color-grey: var(--kt-grey);
   --color-grey-dim: var(--kt-grey-dim);
+  --color-overlay: var(--kt-overlay);
+  --color-success: var(--kt-success);
+  --color-warning: var(--kt-warning);
+  --color-danger: var(--kt-danger);
 
   /* shadcn/ui */
   --color-background: var(--background);

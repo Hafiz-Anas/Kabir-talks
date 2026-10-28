@@ -133,7 +133,7 @@ export function Checklist({ items }: { items: ChecklistItem[] }) {
       {items.map((item) => (
         <li key={item.key} className="flex items-start gap-2">
           {item.done ? (
-            <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0 text-emerald-400" />
+            <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
           ) : (
             <Circle aria-hidden className="mt-0.5 size-4 shrink-0 text-destructive" />
           )}

@@ -186,7 +186,7 @@ function ModerationRow({
                 <span className="text-grey">{item.author.email}</span>
                 {item.author.isAdmin && <span className="rounded-sm border border-gold-muted px-1.5 text-xs text-gold">Admin</span>}
                 {item.author.blocked && (
-                  <span className="rounded-sm border border-destructive/50 px-1.5 text-xs text-red-300">Blocked from commenting</span>
+                  <span className="rounded-sm border border-destructive/50 px-1.5 text-xs text-danger">Blocked from commenting</span>
                 )}
               </>
             ) : (
@@ -262,7 +262,7 @@ function ModerationRow({
                 </Button>
               </span>
             ) : (
-              <Button size="sm" variant="ghost" className="text-red-300 hover:text-red-200" disabled={busy} onClick={() => setConfirmDelete(true)}>
+              <Button size="sm" variant="ghost" className="text-danger hover:text-danger" disabled={busy} onClick={() => setConfirmDelete(true)}>
                 <Trash2 aria-hidden /> Delete
               </Button>
             )}

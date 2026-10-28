@@ -419,6 +419,12 @@ export const ur: Dictionary = {
       generic: "کچھ غلط ہو گیا۔ براہ کرم دوبارہ کوشش کریں۔",
     },
   },
+  theme: {
+    label: "تھیم",
+    dark: "تاریک",
+    light: "روشن",
+    system: "سسٹم",
+  },
   footer: {
     about: "ہمارے بارے میں",
     contact: "رابطہ",

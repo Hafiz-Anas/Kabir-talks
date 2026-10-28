@@ -823,7 +823,7 @@ function LocaleDot({ state }: { state: "empty" | "partial" | "complete" }) {
       title={label}
       className={cn(
         "inline-block size-2 rounded-full",
-        state === "complete" && "bg-emerald-400",
+        state === "complete" && "bg-success",
         state === "partial" && "bg-gold",
         state === "empty" && "border border-grey-dim",
       )}

@@ -117,7 +117,7 @@ export function AiSuggest({
                       applied === option && "border-gold-muted",
                     )}
                   >
-                    {applied === option && <Check aria-label="Applied" className="mt-1 size-3.5 shrink-0 text-emerald-400" />}
+                    {applied === option && <Check aria-label="Applied" className="mt-1 size-3.5 shrink-0 text-success" />}
                     <span className="min-w-0 flex-1 break-words">{option}</span>
                     {(kind === "seoTitle" || kind === "seoDescription" || kind === "excerpt") && (
                       <span dir="ltr" className="shrink-0 text-xs text-grey-dim">

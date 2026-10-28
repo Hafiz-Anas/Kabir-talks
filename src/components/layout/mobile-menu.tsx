@@ -6,13 +6,14 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { SearchForm } from "@/components/search-form";
+import { ThemeChoice, type ThemeLabels } from "@/components/theme/theme-toggle";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { Dictionary, Locale } from "@/i18n";
 
 import { AccountLinks, type AccountLabels } from "./account-menu";
 import { LanguageSwitcher } from "./language-switcher";
 
-/** Phone/tablet menu: sections, About, search, language and account. Hidden from md up. */
+/** Phone/tablet menu: sections, About, search, language, theme and account. Hidden from md up. */
 export function MobileMenu({
   locale,
   sections,
@@ -25,6 +26,7 @@ export function MobileMenu({
       AccountLabels;
     about: string;
     search: Dictionary["search"];
+    theme: ThemeLabels;
   };
 }) {
   const [open, setOpen] = useState(false);
@@ -93,6 +95,11 @@ export function MobileMenu({
           <div>
             <p className="mb-2 text-xs tracking-[0.12em] text-gold uppercase">{labels.nav.language}</p>
             <LanguageSwitcher locale={locale} label={labels.nav.language} showActive="always" className="-ms-2 text-base" />
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs tracking-[0.12em] text-gold uppercase">{labels.theme.label}</p>
+            <ThemeChoice labels={labels.theme} />
           </div>
 
           <AccountLinks locale={locale} labels={labels.nav} linkClass={linkClass} />

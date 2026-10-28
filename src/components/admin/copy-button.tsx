@@ -40,7 +40,7 @@ export function CopyButton({ text, label = "Copy link", className }: { text: str
         }
       }}
     >
-      {copied ? <Check aria-hidden className="text-emerald-400" /> : <Copy aria-hidden />}
+      {copied ? <Check aria-hidden className="text-success" /> : <Copy aria-hidden />}
       <span aria-live="polite">{copied ? "Copied" : label}</span>
     </Button>
   );

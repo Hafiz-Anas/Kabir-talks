@@ -2,6 +2,7 @@ import "../globals.css";
 
 import type { Metadata } from "next";
 
+import { ThemeScript } from "@/components/theme/theme-script";
 import { fontVariables } from "@/lib/fonts";
 
 /**
@@ -16,7 +17,10 @@ export const metadata: Metadata = {
 
 export default function InternalLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" dir="ltr" className={fontVariables}>
+    <html lang="en" dir="ltr" className={fontVariables} suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body className="min-h-dvh">{children}</body>
     </html>
   );

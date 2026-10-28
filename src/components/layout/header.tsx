@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import type { Dictionary, Locale } from "@/i18n";
 import { categoryPath } from "@/lib/urls";
 import { listPublicCategories } from "@/server/public/articles";
@@ -23,7 +24,7 @@ export async function Header({ locale, dict }: { locale: Locale; dict: Dictionar
         <MobileMenu
           locale={locale}
           sections={sections}
-          labels={{ nav: dict.nav, about: dict.footer.about, search: dict.search }}
+          labels={{ nav: dict.nav, about: dict.footer.about, search: dict.search, theme: dict.theme }}
         />
         <Logo href={`/${locale}`} label={dict.nav.homeLink} />
 
@@ -44,6 +45,8 @@ export async function Header({ locale, dict }: { locale: Locale; dict: Dictionar
 
         <div className="ms-auto flex items-center gap-1 sm:gap-3">
           <HeaderSearch locale={locale} labels={{ ...dict.search, ...dict.nav }} />
+          {/* Phones choose the theme in the menu (the header has no room). */}
+          <ThemeToggle labels={dict.theme} className="hidden sm:inline-flex" />
           <LanguageSwitcher locale={locale} label={dict.nav.language} />
           <AccountMenu locale={locale} labels={dict.nav} />
         </div>
