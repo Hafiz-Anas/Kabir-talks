@@ -13,7 +13,7 @@ import { listSitemapArticles, listSitemapTags } from "@/server/public/seo";
  */
 
 /** Pages that exist in both languages under the same path. */
-const STATIC_PATHS = ["", "/about"];
+const STATIC_PATHS = ["", "/about", "/contact", "/privacy", "/terms"];
 
 type Entry = MetadataRoute.Sitemap[number];
 

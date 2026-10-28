@@ -186,3 +186,41 @@ export const articleViewVisitors = pgTable(
   },
   (table) => [primaryKey({ columns: [table.articleId, table.date, table.visitorHash] }), index("article_view_visitors_date_idx").on(table.date)],
 );
+
+/** Legal pages the admin edits with the article editor (Phase 7). */
+export const SITE_PAGE_SLUGS = ["privacy", "terms"] as const;
+export type SitePageSlug = (typeof SITE_PAGE_SLUGS)[number];
+export const sitePageSlug = pgEnum("site_page_slug", SITE_PAGE_SLUGS);
+
+/**
+ * Privacy Policy and Terms of Use, in both languages. Bodies are Tiptap
+ * JSON, sanitized on save and rendered with the shared renderer (never raw
+ * HTML). `isTemplate` stays true until the admin saves the page once, so the
+ * seeded starter text is flagged for review.
+ */
+export const sitePages = pgTable("site_pages", {
+  slug: sitePageSlug("slug").primaryKey(),
+  titleEn: text("title_en").notNull(),
+  titleUr: text("title_ur").notNull(),
+  bodyEn: jsonb("body_en"),
+  bodyUr: jsonb("body_ur"),
+  isTemplate: boolean("is_template").default(true).notNull(),
+  updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
+  updatedAt: updatedAt(),
+});
+
+/** Contact form messages (Phase 7). Plain text only; never rendered as HTML. */
+export const contactMessages = pgTable(
+  "contact_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    subject: text("subject").notNull(),
+    message: text("message").notNull(),
+    locale: localeEnum("locale").default("en").notNull(),
+    isRead: boolean("is_read").default(false).notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [index("contact_messages_created_at_idx").on(table.createdAt)],
+);

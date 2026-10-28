@@ -10,4 +10,6 @@ export const cacheTags = {
   category: (slug: string) => `category:${slug}`,
   /** Admin-edited site settings (ads, contact email). */
   settings: "settings",
+  /** Privacy Policy and Terms of Use (site_pages). */
+  pages: "pages",
 } as const;

@@ -8,6 +8,7 @@ import { Logo } from "@/components/layout/logo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth-guards";
 import { pendingCommentCount } from "@/server/comments";
+import { unreadMessageCount } from "@/server/contact";
 
 import { SignOutButton } from "./sign-out-button";
 
@@ -26,8 +27,8 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
 
 async function AdminGate({ children }: { children: React.ReactNode }) {
   const session = await requireAdmin();
-  // Sidebar badge; moderation actions revalidate this layout.
-  const pendingComments = await pendingCommentCount();
+  // Sidebar badges; moderation and inbox actions revalidate this layout.
+  const [pendingComments, unreadMessages] = await Promise.all([pendingCommentCount(), unreadMessageCount()]);
 
   return (
     <div className="flex min-h-dvh">
@@ -35,13 +36,13 @@ async function AdminGate({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-2 px-1 pt-2">
           <Logo href="/admin" />
         </div>
-        <AdminNav pendingComments={pendingComments} />
+        <AdminNav pendingComments={pendingComments} unreadMessages={unreadMessages} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 border-b border-border bg-black/90 backdrop-blur">
           <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
-            <MobileNav pendingComments={pendingComments} />
+            <MobileNav pendingComments={pendingComments} unreadMessages={unreadMessages} />
             <span className="rounded-sm border border-gold-muted px-2 py-0.5 text-xs tracking-wide text-gold uppercase">
               Admin
             </span>

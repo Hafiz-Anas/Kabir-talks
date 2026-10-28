@@ -1,7 +1,6 @@
 import { cacheLife } from "next/cache";
 import Link from "next/link";
 
-import { ComingSoon } from "@/components/coming-soon";
 import { newsletterLabels } from "@/components/newsletter/labels";
 import { SignupBox } from "@/components/newsletter/signup-box";
 import type { Dictionary, Locale } from "@/i18n";
@@ -56,15 +55,20 @@ export async function Footer({ locale, dict }: { locale: Locale; dict: Dictionar
             Kabir Talks
           </p>
           <ul className="space-y-3">
-            <li>
-              <Link href={`/${locale}/about`} className={linkClass}>
-                {dict.footer.about}
-              </Link>
-            </li>
-            <li className="flex items-center gap-2 text-grey">
-              {dict.footer.contact}
-              <ComingSoon label={dict.common.comingSoon} />
-            </li>
+            {(
+              [
+                ["about", dict.footer.about],
+                ["contact", dict.footer.contact],
+                ["privacy", dict.footer.privacy],
+                ["terms", dict.footer.terms],
+              ] as const
+            ).map(([path, label]) => (
+              <li key={path}>
+                <Link href={`/${locale}/${path}`} className={linkClass}>
+                  {label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </nav>
 

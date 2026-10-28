@@ -28,6 +28,8 @@ export const RESERVED_CATEGORY_SLUGS = [
   "en", "ur", "search", "tags", "about", "admin", "api", "og",
   // Reader accounts (Phase 5)
   "login", "signup", "account", "forgot-password", "reset-password",
+  // Growth (Phase 7): static pages and feeds under /{locale}/
+  "privacy", "terms", "contact", "newsletter", "rss.xml",
 ] as const;
 
 export function isReservedCategorySlug(slug: string) {

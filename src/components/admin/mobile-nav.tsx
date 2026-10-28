@@ -7,10 +7,10 @@ import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
-import { AdminNav } from "./admin-nav";
+import { AdminNav, type NavBadges } from "./admin-nav";
 
 /** Sidebar as a slide-over sheet on small screens. */
-export function MobileNav({ pendingComments = 0 }: { pendingComments?: number }) {
+export function MobileNav(badges: NavBadges) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -24,7 +24,7 @@ export function MobileNav({ pendingComments = 0 }: { pendingComments?: number })
           <SheetTitle className="sr-only">Admin menu</SheetTitle>
           <Logo href="/admin" />
         </SheetHeader>
-        <AdminNav onNavigate={() => setOpen(false)} pendingComments={pendingComments} />
+        <AdminNav onNavigate={() => setOpen(false)} {...badges} />
       </SheetContent>
     </Sheet>
   );
