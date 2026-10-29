@@ -16,4 +16,6 @@ export const cacheTags = {
   breaking: "breaking",
   /** Phase 7C: author profiles (bylines, author pages, opinion cards). */
   authors: "authors",
+  /** Phase 7C: the homepage "Latest videos" feed read. */
+  youtube: "youtube",
 } as const;

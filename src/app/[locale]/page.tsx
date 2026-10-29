@@ -9,6 +9,7 @@ import { newsletterLabels } from "@/components/newsletter/labels";
 import { SignupBox } from "@/components/newsletter/signup-box";
 import { OpinionStrip } from "@/components/opinion/opinion-strip";
 import { WhatsAppBand } from "@/components/social/follow-box";
+import { LatestVideos } from "@/components/youtube/latest-videos";
 import { JsonLdScript } from "@/components/json-ld";
 import { SectionHeading } from "@/components/section-heading";
 import { cardLabels, type Dictionary, getDictionary, isLocale, type Locale } from "@/i18n";
@@ -21,6 +22,7 @@ import { categoryPath } from "@/lib/urls";
 import { listArticleCards, listPublicCategories } from "@/server/public/articles";
 import { listTrending } from "@/server/public/trending";
 import { getSocialLinks } from "@/server/settings";
+import { getLatestVideos } from "@/server/youtube";
 
 // Must stay fully static (cached reads only): this is where shared links land.
 export const ensureStatic = "navigation";
@@ -56,12 +58,13 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
   if (!isLocale(locale)) notFound();
   const dict = getDictionary(locale);
 
-  const [featured, latest, categories, trending, social] = await Promise.all([
+  const [featured, latest, categories, trending, social, youtube] = await Promise.all([
     listArticleCards({ locale, featuredOnly: true, limit: TOP_STORIES + 1 }),
     listArticleCards({ locale, limit: TOP_STORIES + 1 }),
     listPublicCategories(),
     listTrending(locale),
     getSocialLinks(),
+    getLatestVideos(),
   ]);
 
   if (latest.length === 0) return <EmptyHome dict={dict} />;
@@ -137,6 +140,15 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
       <WhatsAppBand url={social.whatsapp} labels={dict.social} />
 
       <OpinionStrip locale={locale} items={opinion} labels={{ title: dict.opinion.title, label: dict.opinion.label, viewAll: dict.common.viewAll }} />
+
+      {youtube.channelId && (
+        <LatestVideos
+          videos={youtube.videos}
+          labels={dict.videos}
+          channelUrl={`https://www.youtube.com/channel/${youtube.channelId}`}
+          newTab={dict.social.newTab}
+        />
+      )}
 
       <AdSlot placement="home-feed" locale={locale} />
 

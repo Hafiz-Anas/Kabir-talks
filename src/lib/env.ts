@@ -126,6 +126,12 @@ const serverSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(32, "must be at least 32 characters (e.g. openssl rand -hex 32)").optional(),
   ),
+  // Phase 7C, tests only: replaces https://www.youtube.com/feeds/videos.xml (a saved sample feed).
+  // Leave unset everywhere else.
+  YOUTUBE_FEED_URL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().url().optional(),
+  ),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;

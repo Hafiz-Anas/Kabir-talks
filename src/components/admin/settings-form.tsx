@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { SOCIAL_EXAMPLES, SOCIAL_PLATFORM_NAMES, SOCIAL_PLATFORMS, type SocialLinks, type SocialPlatform } from "@/lib/social";
-import { saveContactSettings, saveOpinionSettings, saveSocialSettings, type SettingsResult } from "@/server/settings-actions";
+import { Switch } from "@/components/ui/switch";
+import { saveContactSettings, saveOpinionSettings, saveSocialSettings, saveYouTubeSettings, type SettingsResult } from "@/server/settings-actions";
 
 export function ContactSettingsForm({ initialEmail }: { initialEmail: string | null }) {
   const router = useRouter();
@@ -158,6 +159,61 @@ export function SocialSettingsForm({ initial }: { initial: SocialLinks }) {
       <p className="text-xs text-grey">
         https links only, on each platform’s own domain. Empty links are hidden. Shown in the footer, the mobile menu, the About page and at the end of
         articles; the WhatsApp Channel also gets a “Follow on WhatsApp” button on articles and the homepage.
+      </p>
+      <SaveRow pending={pending} result={result} />
+    </form>
+  );
+}
+
+/** Phase 7C: homepage "Latest videos" from the channel's public feed (no API key). */
+export function YouTubeSettingsForm({ initial }: { initial: { channelId: string | null; enabled: boolean } }) {
+  const router = useRouter();
+  const id = useId();
+  const [channelId, setChannelId] = useState(initial.channelId ?? "");
+  const [enabled, setEnabled] = useState(initial.enabled);
+  const [result, setResult] = useState<SettingsResult | null>(null);
+  const [pending, startTransition] = useTransition();
+  const error = result && !result.ok ? result.fieldErrors?.channelId : undefined;
+
+  return (
+    <form
+      className="space-y-4 rounded-md border border-border bg-obsidian p-5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        startTransition(async () => {
+          const outcome = await saveYouTubeSettings({ channelId, enabled });
+          setResult(outcome);
+          if (outcome.ok) router.refresh();
+        });
+      }}
+    >
+      <div className="space-y-1.5">
+        <label htmlFor={`${id}-channel`} className="block text-sm text-ivory">
+          YouTube channel ID
+        </label>
+        <Input
+          id={`${id}-channel`}
+          dir="ltr"
+          maxLength={40}
+          placeholder="UCxxxxxxxxxxxxxxxxxxxxxx"
+          value={channelId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={`${id}-hint`}
+          onChange={(e) => setChannelId(e.target.value)}
+        />
+        <p id={`${id}-hint`} className="text-xs text-grey">
+          Starts with UC (24 characters). Find it in YouTube Studio → Settings → Channel → Advanced settings. Not the @handle.
+        </p>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor={`${id}-enabled`} className="text-sm text-ivory">
+          Show “Latest videos” on the homepage
+        </label>
+        <Switch id={`${id}-enabled`} checked={enabled} onCheckedChange={setEnabled} />
+      </div>
+      <p className="text-xs text-grey">
+        The newest 6 uploads are read from the channel’s public feed about once an hour. If the feed can’t be read, the section is hidden. Videos only
+        load from YouTube (privacy-enhanced mode) when a reader presses play.
       </p>
       <SaveRow pending={pending} result={result} />
     </form>

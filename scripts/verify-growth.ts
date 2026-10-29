@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
 
-import { adsTxtLine, extractPublisherId, parseAdUnit } from "../src/lib/ads";
+import fs from "node:fs";
 
-/** Phase 7 pure rules: AdSense ID extraction. `npm run verify:growth` */
+import { adsTxtLine, extractPublisherId, parseAdUnit } from "../src/lib/ads";
+import { safeHttpsUrl } from "../src/lib/breaking";
+import { socialLinksInputSchema, validateSocialUrl } from "../src/lib/social";
+import { CHANNEL_ID_PATTERN, decodeXml, parseYouTubeFeed, videoEmbedUrl } from "../src/lib/youtube";
+
+/** Phase 7 pure rules: AdSense ID extraction; Phase 7C social links, breaking links, YouTube feed. `npm run verify:growth` */
 
 let passed = 0;
 const t = (name: string, fn: () => void) => { fn(); passed++; console.log("ok -", name); };
@@ -81,6 +86,79 @@ t("ad unit: everything else is rejected", () => {
 
 t("ads.txt line", () => {
   assert.equal(adsTxtLine(PUB), "google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0");
+});
+
+t("social links: each platform's own domains (and subdomains), https, a profile path", () => {
+  const ok: [Parameters<typeof validateSocialUrl>[0], string][] = [
+    ["youtube", "https://www.youtube.com/@kabirtalks"],
+    ["youtube", "https://youtube.com/channel/UCabcdefghijklmnopqrstuv"],
+    ["youtube", "https://youtu.be/dQw4w9WgXcQ"],
+    ["whatsapp", "https://whatsapp.com/channel/0029VaKabir"],
+    ["whatsapp", "https://www.whatsapp.com/channel/0029VaKabir/"],
+    ["facebook", "https://www.facebook.com/kabirtalks"],
+    ["facebook", "https://fb.com/kabirtalks"],
+    ["facebook", "https://m.facebook.com/kabirtalks"],
+    ["instagram", "https://instagram.com/kabirtalks"],
+    ["x", "https://x.com/kabirtalks"],
+    ["x", "https://twitter.com/kabirtalks"],
+    ["tiktok", "https://www.tiktok.com/@kabirtalks"],
+  ];
+  for (const [platform, url] of ok) assert.ok(validateSocialUrl(platform, url).ok, `${platform} ${url}`);
+});
+
+t("social links: wrong domain, look-alikes, http, credentials, ports, bare homepages, non-channel WhatsApp", () => {
+  const bad: [Parameters<typeof validateSocialUrl>[0], string][] = [
+    ["youtube", "https://vimeo.com/kabir"],
+    ["youtube", "https://youtube.com.evil.example/@k"],
+    ["youtube", "https://notyoutube.com/@k"],
+    ["youtube", "http://www.youtube.com/@k"],
+    ["youtube", "https://www.youtube.com/"],
+    ["whatsapp", "https://wa.me/923001234567"],
+    ["whatsapp", "https://whatsapp.com/kabir"],
+    ["whatsapp", "https://chat.whatsapp.com/AbCdEf"],
+    ["facebook", "https://facebook.co/kabir"],
+    ["facebook", "https://user:pw@facebook.com/kabir"],
+    ["instagram", "https://instagram.com:8443/k"],
+    ["instagram", "https://instagr.am/k"],
+    ["x", "https://twitter.co/k"],
+    ["x", "javascript:alert(1)"],
+    ["tiktok", "tiktok.com/@k"],
+    ["tiktok", "https://x.com/@k"],
+  ];
+  for (const [platform, url] of bad) assert.ok(!validateSocialUrl(platform, url).ok, `${platform} ${url}`);
+  const parsed = socialLinksInputSchema.safeParse({ x: "https://x.com/k", youtube: "", facebook: "  " });
+  assert.ok(parsed.success);
+  assert.deepEqual(parsed.success && parsed.data, { x: "https://x.com/k" });
+});
+
+t("breaking-news links: https only", () => {
+  assert.ok(safeHttpsUrl("https://example.com/live"));
+  for (const url of ["http://example.com", "javascript:alert(1)", "https://u:p@example.com/", "https://localhost/", "ftp://example.com/x", 42]) assert.equal(safeHttpsUrl(url), null, String(url));
+});
+
+t("YouTube: channel ID format", () => {
+  assert.ok(CHANNEL_ID_PATTERN.test("UCabcdefghijklmnopqrst_-"));
+  for (const id of ["", "@kabirtalks", "UCshort", "UCabcdefghijklmnopqrstuvw", "XXabcdefghijklmnopqrstuv", "UCabcdefghijklmnopqrst<>"]) assert.ok(!CHANNEL_ID_PATTERN.test(id), id);
+});
+
+t("YouTube: parses the saved sample feed (6 newest, bad entry skipped, entities decoded, no feed thumbnails)", () => {
+  const xml = fs.readFileSync(new URL("./fixtures/youtube-feed.xml", import.meta.url), "utf8");
+  const videos = parseYouTubeFeed(xml);
+  assert.equal(videos.length, 6);
+  assert.deepEqual(videos.map((v) => v.id).slice(0, 3), ["dQw4w9WgXcQ", "aBcDeFgHiJk", "Zz_-0123456"]);
+  assert.equal(videos[2].title, "Floods & the monsoon: live briefing");
+  assert.equal(videos[3].title, "سیلاب کی تازہ صورتحال");
+  assert.equal(videos[0].publishedAt, "2026-10-28T10:00:00.000Z");
+  assert.ok(!JSON.stringify(videos).includes("evil.example"));
+  assert.equal(parseYouTubeFeed(xml, 2).length, 2);
+  assert.equal(videoEmbedUrl("dQw4w9WgXcQ"), "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0");
+});
+
+t("YouTube: garbage in, empty list out", () => {
+  for (const input of [undefined, null, 42, "", "<html>not a feed</html>", "<feed></feed>", "<feed><entry><title>x</title></entry></feed>"]) {
+    assert.deepEqual(parseYouTubeFeed(input), []);
+  }
+  assert.equal(decodeXml("a &amp; b &#x41; &#66; &lt;i&gt; &bogus;"), "a & b A B <i> &bogus;");
 });
 
 console.log(`\n${passed} passed`);

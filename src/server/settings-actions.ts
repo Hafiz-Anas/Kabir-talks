@@ -7,6 +7,7 @@ import { locales } from "@/i18n/config";
 import { requireAdmin } from "@/lib/auth-guards";
 import { cacheTags } from "@/lib/cache-tags";
 import { SOCIAL_PLATFORMS, socialLinksInputSchema } from "@/lib/social";
+import { CHANNEL_ID_PATTERN } from "@/lib/youtube";
 
 import { writeSetting } from "./settings";
 
@@ -63,4 +64,24 @@ export async function saveSocialSettings(input: unknown): Promise<SettingsResult
   revalidatePath("/[locale]", "layout");
   const count = SOCIAL_PLATFORMS.filter((platform) => parsed.data[platform]).length;
   return { ok: true, message: count ? `Saved. ${count} link${count === 1 ? "" : "s"} shown on the site.` : "Saved. No social links are shown." };
+}
+
+const youtubeSchema = z
+  .object({
+    channelId: z.union([z.literal(""), z.string().trim().regex(CHANNEL_ID_PATTERN, "A channel ID starts with UC and has 24 characters.")]),
+    enabled: z.boolean(),
+  })
+  .refine((value) => !value.enabled || value.channelId, { message: "Add the channel ID before switching it on.", path: ["channelId"] });
+
+/** Phase 7C: homepage "Latest videos". The homepages are refreshed so the change shows at once. */
+export async function saveYouTubeSettings(input: z.input<typeof youtubeSchema>): Promise<SettingsResult> {
+  await requireAdmin();
+  const parsed = youtubeSchema.safeParse({ ...input, channelId: typeof input?.channelId === "string" ? input.channelId.trim() : input?.channelId });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input.", fieldErrors: { channelId: parsed.error.issues[0]?.message ?? "" } };
+  const { channelId, enabled } = parsed.data;
+  await writeSetting("youtube", { channelId: channelId || null, enabled });
+  updateTag(cacheTags.settings);
+  updateTag(cacheTags.youtube);
+  for (const locale of locales) revalidatePath(`/${locale}`);
+  return { ok: true, message: enabled ? "Saved. The homepage shows the channel’s latest videos (if its feed can be read)." : "Saved. Latest videos are hidden." };
 }

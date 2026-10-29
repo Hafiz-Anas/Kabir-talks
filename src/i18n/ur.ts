@@ -445,6 +445,11 @@ export const ur: Dictionary = {
     followWhatsApp: "واٹس ایپ پر فالو کریں",
     whatsAppIntro: "تازہ ترین اور اہم خبریں ہمارے واٹس ایپ چینل پر۔",
   },
+  videos: {
+    title: "تازہ ترین ویڈیوز",
+    play: "ویڈیو چلائیں",
+    channel: "ہمارے یوٹیوب چینل پر مزید",
+  },
   breaking: {
     label: "تازہ ترین",
     region: "تازہ ترین خبریں",

@@ -445,6 +445,11 @@ export const en = {
     followWhatsApp: "Follow on WhatsApp",
     whatsAppIntro: "Breaking news and top stories on our WhatsApp Channel.",
   },
+  videos: {
+    title: "Latest videos",
+    play: "Play video",
+    channel: "More on our YouTube channel",
+  },
   breaking: {
     label: "Breaking",
     region: "Breaking news",

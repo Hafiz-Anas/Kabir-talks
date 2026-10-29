@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <link rel="self" href="http://www.youtube.com/feeds/videos.xml?channel_id=UCabcdefghijklmnopqrstuv"/>
+ <id>yt:channel:abcdefghijklmnopqrstuv</id>
+ <yt:channelId>abcdefghijklmnopqrstuv</yt:channelId>
+ <title>Kabir Talks</title>
+ <author><name>Kabir Talks</name><uri>https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv</uri></author>
+ <published>2024-01-01T00:00:00+00:00</published>
+ <entry>
+  <id>yt:video:bad</id>
+  <yt:videoId>not-valid</yt:videoId>
+  <title>Broken entry (bad id)</title>
+ </entry>
+ <entry>
+  <id>yt:video:dQw4w9WgXcQ</id>
+  <yt:videoId>dQw4w9WgXcQ</yt:videoId>
+  <yt:channelId>UCabcdefghijklmnopqrstuv</yt:channelId>
+  <title>Budget 2026 explained in 5 minutes</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"/>
+  <author><name>Kabir Talks</name></author>
+  <published>2026-10-28T10:00:00+00:00</published>
+  <updated>2026-10-28T11:00:00+00:00</updated>
+  <media:group>
+   <media:title>Budget 2026 explained in 5 minutes</media:title>
+   <media:content url="https://www.youtube.com/v/dQw4w9WgXcQ?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://evil.example/thumb.jpg" width="480" height="360"/>
+   <media:description>Description</media:description>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:aBcDeFgHiJk</id>
+  <yt:videoId>aBcDeFgHiJk</yt:videoId>
+  <yt:channelId>UCabcdefghijklmnopqrstuv</yt:channelId>
+  <title>PSL final: what we learned</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=aBcDeFgHiJk"/>
+  <author><name>Kabir Talks</name></author>
+  <published>2026-10-27T10:00:00+00:00</published>
+  <updated>2026-10-27T11:00:00+00:00</updated>
+  <media:group>
+   <media:title>PSL final: what we learned</media:title>
+   <media:content url="https://www.youtube.com/v/aBcDeFgHiJk?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://evil.example/thumb.jpg" width="480" height="360"/>
+   <media:description>Description</media:description>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:Zz_-0123456</id>
+  <yt:videoId>Zz_-0123456</yt:videoId>
+  <yt:channelId>UCabcdefghijklmnopqrstuv</yt:channelId>
+  <title>Floods &amp; the monsoon: live briefing</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=Zz_-0123456"/>
+  <author><name>Kabir Talks</name></author>
+  <published>2026-10-26T10:00:00+00:00</published>
+  <updated>2026-10-26T11:00:00+00:00</updated>
+  <media:group>
+   <media:title>Floods &amp; the monsoon: live briefing</media:title>
+   <media:content url="https://www.youtube.com/v/Zz_-0123456?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://evil.example/thumb.jpg" width="480" height="360"/>
+   <media:description>Description</media:description>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:Qq1Qq2Qq3Qq</id>
+  <yt:videoId>Qq1Qq2Qq3Qq</yt:videoId>
+  <yt:channelId>UCabcdefghijklmnopqrstuv</yt:channelId>
+  <title>سیلاب کی تازہ صورتحال</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=Qq1Qq2Qq3Qq"/>
+  <author><name>Kabir Talks</name></author>
+  <published>2026-10-25T10:00:00+00:00</published>
+  <updated>2026-10-25T11:00:00+00:00</updated>
+  <media:group>
+   <media:title>سیلاب کی تازہ صورتحال</media:title>
+   <media:content url="https://www.youtube.com/v/Qq1Qq2Qq3Qq?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://evil.example/thumb.jpg" width="480" height="360"/>
+   <media:description>Description</media:description>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:Xx9Xx8Xx7Xx</id>
+  <yt:videoId>Xx9Xx8Xx7Xx</yt:videoId>
+  <yt:channelId>UCabcdefghijklmnopqrstuv</yt:channelId>
+  <title>Interview: the new cricket captain</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=Xx9Xx8Xx7Xx"/>
+  <author><name>Kabir Talks</name></author>
+  <published>2026-10-24T10:00:00+00:00</published>
+  <updated>2026-10-24T11:00:00+00:00</updated>
+  <media:group>
+   <media:title>Interview: the new cricket captain</media:title>
+   <media:content url="https://www.youtube.com/v/Xx9Xx8Xx7Xx?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://evil.example/thumb.jpg" width="480" height="360"/>
+   <media:description>Description</media:description>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:Mm5Mm6Mm7Mm</id>
+  <yt:videoId>Mm5Mm6Mm7Mm</yt:videoId>
+  <yt:channelId>UCabcdefghijklmnopqrstuv</yt:channelId>
+  <title>Weekly news roundup</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=Mm5Mm6Mm7Mm"/>
+  <author><name>Kabir Talks</name></author>
+  <published>2026-10-23T10:00:00+00:00</published>
+  <updated>2026-10-23T11:00:00+00:00</updated>
+  <media:group>
+   <media:title>Weekly news roundup</media:title>
+   <media:content url="https://www.youtube.com/v/Mm5Mm6Mm7Mm?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://evil.example/thumb.jpg" width="480" height="360"/>
+   <media:description>Description</media:description>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:Nn1Nn2Nn3Nn</id>
+  <yt:videoId>Nn1Nn2Nn3Nn</yt:videoId>
+  <yt:channelId>UCabcdefghijklmnopqrstuv</yt:channelId>
+  <title>Seventh video (beyond the limit)</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=Nn1Nn2Nn3Nn"/>
+  <author><name>Kabir Talks</name></author>
+  <published>2026-10-22T10:00:00+00:00</published>
+  <updated>2026-10-22T11:00:00+00:00</updated>
+  <media:group>
+   <media:title>Seventh video (beyond the limit)</media:title>
+   <media:content url="https://www.youtube.com/v/Nn1Nn2Nn3Nn?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://evil.example/thumb.jpg" width="480" height="360"/>
+   <media:description>Description</media:description>
+  </media:group>
+ </entry>
+</feed>

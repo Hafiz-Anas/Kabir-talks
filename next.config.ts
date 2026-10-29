@@ -23,13 +23,16 @@ function storageImagePatterns(): NonNullable<NextConfig["images"]>["remotePatter
   }
 }
 
+/** Phase 7C: "Latest videos" thumbnails (only the /vi/{id}/ images; served through next/image). */
+const YOUTUBE_THUMBNAILS = { protocol: "https" as const, hostname: "i.ytimg.com", pathname: "/vi/**", search: "" };
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   // Loads its WebAssembly file from its own folder at runtime; don't bundle it.
   serverExternalPackages: ["harfbuzzjs"],
   partialPrefetching: true,
   images: {
-    remotePatterns: storageImagePatterns(),
+    remotePatterns: [...(storageImagePatterns() ?? []), YOUTUBE_THUMBNAILS],
   },
   experimental: {
     // Needed because the app has two root layouts ([locale] and (internal)).

@@ -9,6 +9,7 @@ import { AD_PLACEMENTS, type AdPlacement, adSlots, siteSettings } from "@/db/sch
 import { AD_FORMATS, AD_LAYOUTS, LAYOUT_KEY_PATTERN, PUBLISHER_ID_PATTERN, SLOT_ID_PATTERN } from "@/lib/ads";
 import { cacheTags } from "@/lib/cache-tags";
 import { cleanSocialLinks, type SocialLinks } from "@/lib/social";
+import { CHANNEL_ID_PATTERN } from "@/lib/youtube";
 
 /**
  * Site settings stored as JSON in site_settings, one row per key, each
@@ -46,14 +47,23 @@ export type OpinionSettings = z.infer<typeof opinionSchema>;
 const socialSchema = z.unknown().transform((value): SocialLinks => cleanSocialLinks(value));
 const SOCIAL_DEFAULTS: SocialLinks = {};
 
+/** Phase 7C: homepage "Latest videos" from a YouTube channel's public feed. */
+const youtubeSchema = z.object({
+  channelId: z.string().regex(CHANNEL_ID_PATTERN).nullable().catch(null),
+  enabled: z.boolean().catch(false),
+});
+export type YouTubeSettings = z.infer<typeof youtubeSchema>;
+const YOUTUBE_DEFAULTS: YouTubeSettings = { channelId: null, enabled: false };
+
 const SCHEMAS = {
   ads: [adsSchema, ADS_DEFAULTS],
   contact: [contactSchema, CONTACT_DEFAULTS],
   opinion: [opinionSchema, OPINION_DEFAULTS],
   social: [socialSchema, SOCIAL_DEFAULTS],
+  youtube: [youtubeSchema, YOUTUBE_DEFAULTS],
 } as const;
 type Key = keyof typeof SCHEMAS;
-type Values = { ads: AdsSettings; contact: ContactSettings; opinion: OpinionSettings; social: SocialLinks };
+type Values = { ads: AdsSettings; contact: ContactSettings; opinion: OpinionSettings; social: SocialLinks; youtube: YouTubeSettings };
 type Value<K extends Key> = Values[K];
 
 /** Uncached read (admin pages, actions). */
