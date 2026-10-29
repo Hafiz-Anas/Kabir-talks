@@ -45,19 +45,19 @@ export async function setBookmark(userId: string, articleId: string, saved: bool
 /** "My bookmarks": newest saved first, only articles still published and available in `locale`. */
 export async function listBookmarks(userId: string, locale: Locale, page: number) {
   const where = and(eq(bookmarks.userId, userId), isPublished, availableIn(locale));
-  const [rows, [{ total }]] = await Promise.all([
-    selectCards()
-      .innerJoin(bookmarks, eq(bookmarks.articleId, articles.id))
-      .where(where)
-      .orderBy(desc(bookmarks.createdAt), desc(articles.id))
-      .limit(BOOKMARKS_PAGE_SIZE)
-      .offset((page - 1) * BOOKMARKS_PAGE_SIZE),
-    db
-      .select({ total: count() })
-      .from(bookmarks)
-      .innerJoin(articles, eq(articles.id, bookmarks.articleId))
-      .innerJoin(categories, eq(categories.id, articles.categoryId))
-      .where(where),
-  ]);
+  // Sequential, not Promise.all: PGlite's socket server (local dev/tests) interleaves concurrent
+  // extended-protocol messages on one pool; a bookmarks page is small, so the extra round trip is cheap.
+  const rows = await selectCards()
+    .innerJoin(bookmarks, eq(bookmarks.articleId, articles.id))
+    .where(where)
+    .orderBy(desc(bookmarks.createdAt), desc(articles.id))
+    .limit(BOOKMARKS_PAGE_SIZE)
+    .offset((page - 1) * BOOKMARKS_PAGE_SIZE);
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(bookmarks)
+    .innerJoin(articles, eq(articles.id, bookmarks.articleId))
+    .innerJoin(categories, eq(categories.id, articles.categoryId))
+    .where(where);
   return { items: toCards(rows, locale), total, pages: Math.max(1, Math.ceil(total / BOOKMARKS_PAGE_SIZE)) };
 }
