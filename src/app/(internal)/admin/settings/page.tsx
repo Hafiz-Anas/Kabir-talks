@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { ContactSettingsForm, OpinionSettingsForm } from "@/components/admin/settings-form";
+import { ContactSettingsForm, OpinionSettingsForm, SocialSettingsForm } from "@/components/admin/settings-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth-guards";
 import { OPINION_DEFAULTS, readSetting } from "@/server/settings";
@@ -24,7 +24,7 @@ export default function SettingsPage() {
 
 async function Settings() {
   await requireAdmin();
-  const [contact, opinion] = await Promise.all([readSetting("contact"), readSetting("opinion")]);
+  const [contact, opinion, social] = await Promise.all([readSetting("contact"), readSetting("opinion"), readSetting("social")]);
   return (
     <div className="space-y-10">
       <section aria-labelledby="contact-settings" className="space-y-3">
@@ -32,6 +32,12 @@ async function Settings() {
           Contact
         </h2>
         <ContactSettingsForm initialEmail={contact.email} />
+      </section>
+      <section aria-labelledby="social-settings" className="space-y-3">
+        <h2 id="social-settings" className="text-xl text-ivory">
+          Social links
+        </h2>
+        <SocialSettingsForm initial={social} />
       </section>
       <section aria-labelledby="opinion-settings" className="space-y-3">
         <h2 id="opinion-settings" className="text-xl text-ivory">

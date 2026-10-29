@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { AD_PLACEMENTS, type AdPlacement, adSlots, siteSettings } from "@/db/schema";
 import { AD_FORMATS, AD_LAYOUTS, LAYOUT_KEY_PATTERN, PUBLISHER_ID_PATTERN, SLOT_ID_PATTERN } from "@/lib/ads";
 import { cacheTags } from "@/lib/cache-tags";
+import { cleanSocialLinks, type SocialLinks } from "@/lib/social";
 
 /**
  * Site settings stored as JSON in site_settings, one row per key, each
@@ -41,13 +42,18 @@ const opinionSchema = z.object({
 });
 export type OpinionSettings = z.infer<typeof opinionSchema>;
 
+/** Phase 7C: the site's own social profiles. All start empty; anything invalid is dropped on read. */
+const socialSchema = z.unknown().transform((value): SocialLinks => cleanSocialLinks(value));
+const SOCIAL_DEFAULTS: SocialLinks = {};
+
 const SCHEMAS = {
   ads: [adsSchema, ADS_DEFAULTS],
   contact: [contactSchema, CONTACT_DEFAULTS],
   opinion: [opinionSchema, OPINION_DEFAULTS],
+  social: [socialSchema, SOCIAL_DEFAULTS],
 } as const;
 type Key = keyof typeof SCHEMAS;
-type Values = { ads: AdsSettings; contact: ContactSettings; opinion: OpinionSettings };
+type Values = { ads: AdsSettings; contact: ContactSettings; opinion: OpinionSettings; social: SocialLinks };
 type Value<K extends Key> = Values[K];
 
 /** Uncached read (admin pages, actions). */
@@ -127,6 +133,14 @@ export async function getOpinionDisclaimer(locale: "en" | "ur"): Promise<string>
   cacheTag(cacheTags.settings);
   const settings = await readSetting("opinion");
   return (locale === "en" ? settings.disclaimerEn : settings.disclaimerUr) || (locale === "en" ? OPINION_DEFAULTS.disclaimerEn : OPINION_DEFAULTS.disclaimerUr);
+}
+
+/** Phase 7C: the site's filled-in social links (footer, menu, About, articles, sameAs). Cached. */
+export async function getSocialLinks(): Promise<SocialLinks> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(cacheTags.settings);
+  return readSetting("social");
 }
 
 export { ADS_DEFAULTS, CONTACT_DEFAULTS, OPINION_DEFAULTS };

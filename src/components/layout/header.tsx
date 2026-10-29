@@ -4,6 +4,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import type { Dictionary, Locale } from "@/i18n";
 import { categoryPath } from "@/lib/urls";
 import { listPublicCategories } from "@/server/public/articles";
+import { getSocialLinks } from "@/server/settings";
 
 import { AccountMenu } from "./account-menu";
 import { HeaderSearch } from "./header-search";
@@ -13,7 +14,8 @@ import { MobileMenu } from "./mobile-menu";
 
 /** Masthead: logo, sections (from the database, in sortOrder), search, language, account (sign in or avatar menu, loaded in the browser), mobile menu. */
 export async function Header({ locale, dict }: { locale: Locale; dict: Dictionary }) {
-  const sections = (await listPublicCategories()).map((category) => ({
+  const [categories, social] = await Promise.all([listPublicCategories(), getSocialLinks()]);
+  const sections = categories.map((category) => ({
     href: categoryPath(locale, category.slug),
     label: locale === "en" ? category.nameEn : category.nameUr,
   }));
@@ -24,7 +26,16 @@ export async function Header({ locale, dict }: { locale: Locale; dict: Dictionar
         <MobileMenu
           locale={locale}
           sections={sections}
-          labels={{ nav: dict.nav, about: dict.footer.about, search: dict.search, theme: dict.theme }}
+          labels={{
+            nav: dict.nav,
+            about: dict.footer.about,
+            search: dict.search,
+            theme: dict.theme,
+            follow: dict.footer.follow,
+            social: dict.social,
+            siteName: dict.site.name,
+          }}
+          social={social}
         />
         <Logo href={`/${locale}`} label={dict.nav.homeLink} />
 

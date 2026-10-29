@@ -20,6 +20,7 @@ import { JsonLdScript } from "@/components/json-ld";
 import { newsletterLabels } from "@/components/newsletter/labels";
 import { SignupBox } from "@/components/newsletter/signup-box";
 import { OpinionLabel } from "@/components/opinion/opinion-label";
+import { FollowBox } from "@/components/social/follow-box";
 import { SetLocaleAlternates } from "@/components/layout/locale-alternates";
 import { cardLabels, fill, getDictionary, isLocale, type Locale, locales } from "@/i18n";
 import { significantUpdate, tagName } from "@/lib/articles/public";
@@ -32,7 +33,7 @@ import { breadcrumbLd, newsArticleLd } from "@/lib/structured-data";
 import { articlePath, categoryPath } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { getPublishedArticle, listArticleStaticParams, listRelatedArticles } from "@/server/public/articles";
-import { getOpinionDisclaimer } from "@/server/settings";
+import { getOpinionDisclaimer, getSocialLinks } from "@/server/settings";
 import { listTrending } from "@/server/public/trending";
 
 /**
@@ -109,10 +110,11 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
   const path = articlePath(locale, article.categorySlug, article.slug);
   const section = locale === "en" ? article.categoryNameEn : article.categoryNameUr;
   const opinion = content.isOpinion;
-  const [related, trending, disclaimer] = await Promise.all([
+  const [related, trending, disclaimer, social] = await Promise.all([
     listRelatedArticles(article.id, locale),
     listTrending(locale, { excludeId: article.id }),
     opinion ? getOpinionDisclaimer(locale) : null,
+    getSocialLinks(),
   ]);
   const updated = significantUpdate(article.publishedAt, article.updatedAt);
   const other = locales.find((l) => l !== locale)!;
@@ -272,6 +274,8 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
                 </h2>
                 <ShareBar url={siteUrl(path)} title={content.title} labels={dict.article} />
               </section>
+
+              <FollowBox links={social} labels={dict.social} siteName={dict.site.name} />
 
               {features.newsletterEnabled && <SignupBox locale={locale} labels={newsletterLabels(dict)} variant="inline" />}
 

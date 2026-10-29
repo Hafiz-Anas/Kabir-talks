@@ -3,15 +3,16 @@ import Link from "next/link";
 
 import { newsletterLabels } from "@/components/newsletter/labels";
 import { SignupBox } from "@/components/newsletter/signup-box";
+import { SocialLinksRow } from "@/components/social/social-icons";
 import type { Dictionary, Locale } from "@/i18n";
 import { features } from "@/lib/features";
+import { socialEntries } from "@/lib/social";
 import { categoryPath } from "@/lib/urls";
+import { cn } from "@/lib/utils";
 import { listPublicCategories } from "@/server/public/articles";
+import { getSocialLinks } from "@/server/settings";
 
 import { Logo } from "./logo";
-
-// Placeholders: turn these into links when the real profiles exist.
-const SOCIAL_LINKS = ["X", "Facebook", "YouTube", "Instagram"] as const;
 
 async function CurrentYear() {
   "use cache";
@@ -22,11 +23,18 @@ async function CurrentYear() {
 const linkClass = "text-grey transition-colors hover:text-gold-soft focus-visible:text-gold-soft focus-visible:outline-none";
 
 export async function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
-  const categories = await listPublicCategories();
+  const [categories, social] = await Promise.all([listPublicCategories(), getSocialLinks()]);
+  // Phase 7C: the Follow column only exists when at least one link is set.
+  const hasSocial = socialEntries(social).length > 0;
 
   return (
     <footer className="mt-auto border-t border-border bg-obsidian">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 md:grid-cols-[2fr_1fr_1fr_1fr] lg:px-8">
+      <div
+        className={cn(
+          "mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:px-8",
+          hasSocial ? "md:grid-cols-[2fr_1fr_1fr_1fr]" : "md:grid-cols-[2fr_1fr_1fr]",
+        )}
+      >
         <div className="space-y-4 sm:col-span-2 md:col-span-1">
           <Logo href={`/${locale}`} label={dict.nav.homeLink} />
           <p className="max-w-sm text-sm text-grey">{dict.site.tagline}</p>
@@ -72,16 +80,12 @@ export async function Footer({ locale, dict }: { locale: Locale; dict: Dictionar
           </ul>
         </nav>
 
-        <div className="space-y-3 text-sm">
-          <p className="text-ivory">{dict.footer.follow}</p>
-          <ul className="flex flex-wrap gap-x-4 gap-y-2" lang="en" dir="ltr">
-            {SOCIAL_LINKS.map((name) => (
-              <li key={name} className="text-grey" title={dict.common.comingSoon}>
-                {name}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {hasSocial && (
+          <div className="space-y-3 text-sm" data-footer-follow>
+            <p className="text-ivory">{dict.footer.follow}</p>
+            <SocialLinksRow links={social} owner={dict.site.name} labels={dict.social} size="sm" />
+          </div>
+        )}
       </div>
 
       <div className="border-t border-border">

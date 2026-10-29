@@ -9,13 +9,15 @@ export type JsonLd = Record<string, unknown>;
 
 const LANGUAGE: Record<Locale, string> = { en: "en", ur: "ur" };
 
-export function organizationLd(site: { name: string; url: string; logo: string }): JsonLd {
+/** `sameAs` (Phase 7C): the filled-in social profile links from Settings. */
+export function organizationLd(site: { name: string; url: string; logo: string }, sameAs: string[] = []): JsonLd {
   return {
     "@type": "NewsMediaOrganization",
     "@id": `${site.url}/#organization`,
     name: site.name,
     url: site.url,
     logo: { "@type": "ImageObject", url: site.logo, width: 512, height: 512 },
+    ...(sameAs.length ? { sameAs } : {}),
   };
 }
 

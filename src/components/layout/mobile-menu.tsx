@@ -6,9 +6,11 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { SearchForm } from "@/components/search-form";
+import { type SocialLabels, SocialLinksRow } from "@/components/social/social-icons";
 import { ThemeChoice, type ThemeLabels } from "@/components/theme/theme-toggle";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { Dictionary, Locale } from "@/i18n";
+import { type SocialLinks, socialEntries } from "@/lib/social";
 
 import { AccountLinks, type AccountLabels } from "./account-menu";
 import { LanguageSwitcher } from "./language-switcher";
@@ -18,6 +20,7 @@ export function MobileMenu({
   locale,
   sections,
   labels,
+  social,
 }: {
   locale: Locale;
   sections: { href: string; label: string }[];
@@ -27,7 +30,12 @@ export function MobileMenu({
     about: string;
     search: Dictionary["search"];
     theme: ThemeLabels;
+    follow: string;
+    social: SocialLabels;
+    siteName: string;
   };
+  /** Phase 7C: the site's filled-in social links (the section is hidden when none). */
+  social: SocialLinks;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -101,6 +109,13 @@ export function MobileMenu({
             <p className="mb-2 text-xs tracking-[0.12em] text-gold uppercase">{labels.theme.label}</p>
             <ThemeChoice labels={labels.theme} />
           </div>
+
+          {socialEntries(social).length > 0 && (
+            <div data-menu-follow>
+              <p className="mb-3 text-xs tracking-[0.12em] text-gold uppercase">{labels.follow}</p>
+              <SocialLinksRow links={social} owner={labels.siteName} labels={labels.social} />
+            </div>
+          )}
 
           <AccountLinks locale={locale} labels={labels.nav} linkClass={linkClass} />
         </div>

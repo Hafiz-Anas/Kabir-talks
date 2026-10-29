@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { FollowBox } from "@/components/social/follow-box";
 import { getDictionary, isLocale } from "@/i18n";
 import { pageMetadata } from "@/lib/seo";
+import { getSocialLinks } from "@/server/settings";
 
 /** About page. Copy lives in the i18n dictionaries (about.*) until there is a CMS page for it. */
 
@@ -26,7 +28,8 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/about">)
 export default async function AboutPage({ params }: PageProps<"/[locale]/about">) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  const { about } = getDictionary(locale);
+  const { about, social, site } = getDictionary(locale);
+  const links = await getSocialLinks();
 
   return (
     <div className="mx-auto max-w-3xl space-y-12 px-4 py-12 sm:px-6 sm:py-16">
@@ -40,6 +43,7 @@ export default async function AboutPage({ params }: PageProps<"/[locale]/about">
           <p className="text-lg text-ivory/90">{section.body}</p>
         </section>
       ))}
+      <FollowBox links={links} labels={social} siteName={site.name} />
     </div>
   );
 }
