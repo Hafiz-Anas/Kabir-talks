@@ -19,6 +19,8 @@ export type ArticleCardData = {
   isFeatured: boolean;
   publishedAt: string;
   readingMinutes: number;
+  /** Phase 7C: the credited author, in the card's language. */
+  author: { slug: string; name: string; nameIsEnglish: boolean; photoUrl: string | null };
 };
 
 export type TagData = { id: string; slug: string; nameEn: string; nameUr: string | null };

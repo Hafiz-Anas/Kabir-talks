@@ -10,6 +10,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -32,6 +33,36 @@ export const categories = pgTable("categories", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
+
+/**
+ * Phase 7C: author profiles shown on articles (bylines, author pages). These
+ * are NOT logins: articles.authorId stays the admin account that created the
+ * article; articles.authorProfileId is who it's credited to. One author is the
+ * default ("main author") that the editor preselects; migration 0017 seeds
+ * "Kabir" as the default and credits every existing article to him.
+ */
+export const authors = pgTable(
+  "authors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull().unique(),
+    nameEn: text("name_en").notNull(),
+    /** Falls back to the English name when empty. */
+    nameUr: text("name_ur"),
+    titleEn: text("title_en"),
+    titleUr: text("title_ur"),
+    bioEn: text("bio_en"),
+    bioUr: text("bio_ur"),
+    /** An upload from our article-images bucket (same pipeline as cover images). */
+    photoUrl: text("photo_url"),
+    /** { youtube?, whatsapp?, facebook?, instagram?, x?, tiktok? }: validated https links (src/lib/social.ts). */
+    socialLinks: jsonb("social_links").$type<Record<string, string>>().default({}).notNull(),
+    isDefault: boolean("is_default").default(false).notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [uniqueIndex("authors_one_default_idx").on(table.isDefault).where(sql`${table.isDefault}`)],
+);
 
 export const articles = pgTable(
   "articles",
@@ -66,6 +97,10 @@ export const articles = pgTable(
     authorId: text("author_id")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
+    // Phase 7C: the credited author profile. RESTRICT: reassign articles before deleting an author.
+    authorProfileId: uuid("author_profile_id")
+      .notNull()
+      .references(() => authors.id, { onDelete: "restrict" }),
 
     seoTitleEn: text("seo_title_en"),
     seoTitleUr: text("seo_title_ur"),
@@ -80,6 +115,7 @@ export const articles = pgTable(
     index("articles_status_published_at_idx").on(table.status, table.publishedAt.desc()),
     index("articles_category_id_idx").on(table.categoryId),
     index("articles_author_id_idx").on(table.authorId),
+    index("articles_author_profile_id_idx").on(table.authorProfileId),
     check("articles_has_title", sql`${table.titleEn} IS NOT NULL OR ${table.titleUr} IS NOT NULL`),
     check(
       "articles_published_has_date",

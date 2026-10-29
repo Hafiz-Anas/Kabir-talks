@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 
 import { aiSummaries } from "./ai";
 import { account, session, user } from "./auth";
-import { articles, articleTags, categories, tags } from "./content";
+import { articles, articleTags, authors, categories, tags } from "./content";
 import { articleViews } from "./growth";
 import { bookmarks, comments } from "./readers";
 
@@ -31,11 +31,16 @@ export const categoryRelations = relations(categories, ({ many }) => ({
 export const articleRelations = relations(articles, ({ one, many }) => ({
   category: one(categories, { fields: [articles.categoryId], references: [categories.id] }),
   author: one(user, { fields: [articles.authorId], references: [user.id] }),
+  authorProfile: one(authors, { fields: [articles.authorProfileId], references: [authors.id] }),
   articleTags: many(articleTags),
   bookmarks: many(bookmarks),
   comments: many(comments),
   aiSummaries: many(aiSummaries),
   views: many(articleViews),
+}));
+
+export const authorRelations = relations(authors, ({ many }) => ({
+  articles: many(articles),
 }));
 
 export const tagRelations = relations(tags, ({ many }) => ({

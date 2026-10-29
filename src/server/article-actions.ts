@@ -7,7 +7,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { articles, articleTags, categories, tags } from "@/db/schema";
+import { articles, articleTags, authors, categories, tags } from "@/db/schema";
 import { type ArticleStatus, completedLocales, missingForPublish, type ChecklistItem } from "@/lib/articles/rules";
 import { isValidSlug, slugify } from "@/lib/articles/slug";
 import { articlePayloadSchema, type FieldErrors, toFieldErrors } from "@/lib/articles/validation";
@@ -117,6 +117,13 @@ export async function saveArticle(input: unknown): Promise<SaveArticleResult> {
     : undefined;
   if (data.id && !existing) return { ok: false, error: "This article no longer exists." };
 
+  const author = data.authorProfileId
+    ? await db.query.authors.findFirst({ where: eq(authors.id, data.authorProfileId), columns: { id: true } })
+    : existing
+      ? { id: existing.authorProfileId }
+      : await db.query.authors.findFirst({ where: eq(authors.isDefault, true), columns: { id: true } });
+  if (!author) return { ok: false, error: "Choose an author.", fieldErrors: { authorProfileId: "Author not found" } };
+
   const slug = data.slug || slugify(data.titleEn ?? "") || `article-${randomBytes(4).toString("hex")}`;
 
   if (existing?.publishedAt && existing.slug !== slug && !data.confirmSlugChange) {
@@ -156,6 +163,7 @@ export async function saveArticle(input: unknown): Promise<SaveArticleResult> {
 
   const values = {
     categoryId: data.categoryId,
+    authorProfileId: author.id,
     slug,
     titleEn: data.titleEn,
     titleUr: data.titleUr,

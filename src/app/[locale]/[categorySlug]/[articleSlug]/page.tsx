@@ -5,6 +5,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 
 import { AdSlot } from "@/components/ad-slot";
 import { ArticleCard } from "@/components/articles/article-card";
+import { AuthorBox } from "@/components/authors/author-box";
 import { ReaderTools } from "@/components/articles/reader-tools";
 import { ReadingProgress } from "@/components/articles/reading-progress";
 import { ShareBar } from "@/components/articles/share-bar";
@@ -18,8 +19,9 @@ import { JsonLdScript } from "@/components/json-ld";
 import { newsletterLabels } from "@/components/newsletter/labels";
 import { SignupBox } from "@/components/newsletter/signup-box";
 import { SetLocaleAlternates } from "@/components/layout/locale-alternates";
-import { cardLabels, type Dictionary, fill, getDictionary, isLocale, type Locale, locales } from "@/i18n";
+import { cardLabels, fill, getDictionary, isLocale, type Locale, locales } from "@/i18n";
 import { significantUpdate, tagName } from "@/lib/articles/public";
+import { authorPath } from "@/lib/authors";
 import { features } from "@/lib/features";
 import { docToPlainText } from "@/lib/content/document";
 import { formatPublicDate } from "@/lib/format";
@@ -98,12 +100,6 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/[categor
   });
 }
 
-/** Shows the author's name, or the publication's when the account has a generic name. */
-function byline(authorName: string, dict: Dictionary) {
-  const name = authorName.trim();
-  return !name || /^(admin|administrator)$/i.test(name) ? dict.site.name : name;
-}
-
 export default async function ArticlePage({ params }: PageProps<"/[locale]/[categorySlug]/[articleSlug]">) {
   const { locale, article, content } = await load(params);
   const dict = getDictionary(locale);
@@ -112,6 +108,8 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
   const [related, trending] = await Promise.all([listRelatedArticles(article.id, locale), listTrending(locale, { excludeId: article.id })]);
   const updated = significantUpdate(article.publishedAt, article.updatedAt);
   const other = locales.find((l) => l !== locale)!;
+  const author = article.author[locale];
+  const authorName = author.nameIsEnglish ? <bdi lang="en">{author.name}</bdi> : author.name;
 
   return (
     <>
@@ -130,7 +128,7 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
             locale,
             section,
             keywords: article.tags.map((tag) => tagName(tag, locale)),
-            author: { name: byline(article.authorName, dict), isOrganization: byline(article.authorName, dict) === dict.site.name },
+            author: { name: author.name, url: siteUrl(authorPath(locale, author.slug)) },
             site: siteIdentity(locale),
           }),
           breadcrumbLd([
@@ -167,8 +165,11 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
               {content.excerpt && <p className="text-xl text-grey sm:text-2xl/relaxed">{content.excerpt}</p>}
 
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-border py-4 text-sm text-grey">
-                <span>
-                  {dict.article.by} <span className="text-ivory">{byline(article.authorName, dict)}</span>
+                <span data-byline>
+                  {dict.article.by}{" "}
+                  <Link href={authorPath(locale, author.slug)} rel="author" className="text-ivory underline-offset-4 hover:text-gold-soft hover:underline">
+                    {authorName}
+                  </Link>
                 </span>
                 <span aria-hidden className="text-grey-dim">·</span>
                 <span>
@@ -239,6 +240,8 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
                   </ul>
                 </section>
               )}
+
+              <AuthorBox author={author} locale={locale} labels={dict.author} socialLabels={dict.social} />
 
               <section aria-labelledby="share-bottom" className="space-y-3 border-t border-border pt-8">
                 <h2 id="share-bottom" className="text-lg text-ivory">

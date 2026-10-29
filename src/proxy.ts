@@ -12,7 +12,7 @@ import { PAGED_SEGMENT } from "@/lib/urls";
  *    pages and server actions.
  *
  * 2. Listing pagination: the public URL /en/sports?page=2 is rewritten to the
- *    static route /en/sports/p/2, so section and tag pages never read
+ *    static route /en/sports/p/2 (tag and author pages likewise), so section and tag pages never read
  *    searchParams and can return real 404s. ?page=1 and direct /p/N visits
  *    redirect to the one public form.
  */
@@ -47,8 +47,9 @@ export function proxy(request: NextRequest) {
   }
 
   const segments = pathname.split("/").filter(Boolean);
-  const isTag = segments[1] === "tags";
-  const base = segments.slice(0, isTag ? 3 : 2);
+  // Tag and author listings have one more segment: /en/tags/cricket, /en/author/kabir.
+  const nested = segments[1] === "tags" || segments[1] === "author";
+  const base = segments.slice(0, nested ? 3 : 2);
 
   // Direct visit to the internal route: /en/sports/p/2 → /en/sports?page=2
   if (segments.at(-2) === PAGED_SEGMENT && segments.length === base.length + 2) {
@@ -58,7 +59,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  // Only listing URLs (/en/sports, /en/tags/cricket) — never /en/search.
+  // Only listing URLs (/en/sports, /en/tags/cricket, /en/author/kabir) — never /en/search.
   const page = searchParams.get("page");
   if (page === null || segments[1] === "search" || segments.length !== base.length) return NextResponse.next();
 
@@ -78,7 +79,9 @@ export const config = {
     "/(en|ur)/account/:path*",
     { source: "/(en|ur)/:section", has: [{ type: "query", key: "page" }] },
     { source: "/(en|ur)/tags/:tag", has: [{ type: "query", key: "page" }] },
+    { source: "/(en|ur)/author/:author", has: [{ type: "query", key: "page" }] },
     "/(en|ur)/:section/p/:page",
     "/(en|ur)/tags/:tag/p/:page",
+    "/(en|ur)/author/:author/p/:page",
   ],
 };

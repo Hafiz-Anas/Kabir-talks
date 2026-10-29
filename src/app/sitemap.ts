@@ -3,7 +3,9 @@ import type { MetadataRoute } from "next";
 import { type Locale, locales } from "@/i18n";
 import { siteUrl } from "@/lib/seo";
 import { articlePath, categoryPath, tagPath } from "@/lib/urls";
+import { authorPath } from "@/lib/authors";
 import { listPublicCategories } from "@/server/public/articles";
+import { listSitemapAuthors } from "@/server/public/authors";
 import { listSitemapArticles, listSitemapTags } from "@/server/public/seo";
 
 /**
@@ -27,7 +29,12 @@ function entries(paths: Partial<Record<Locale, string>>, extra: Omit<Entry, "url
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [articles, categories, tags] = await Promise.all([listSitemapArticles(), listPublicCategories(), listSitemapTags()]);
+  const [articles, categories, tags, authors] = await Promise.all([
+    listSitemapArticles(),
+    listPublicCategories(),
+    listSitemapTags(),
+    listSitemapAuthors(),
+  ]);
   const newest = articles[0]?.updatedAt;
 
   return [
@@ -50,6 +57,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...tags.flatMap((tag) =>
       entries(Object.fromEntries(locales.filter((l) => tag[l]).map((l) => [l, tagPath(l, tag.slug)])), {
         lastModified: tag.updatedAt,
+        changeFrequency: "weekly",
+        priority: 0.4,
+      }),
+    ),
+    // Phase 7C: author pages, for authors with published articles, in the languages they have some.
+    ...authors.flatMap((author) =>
+      entries(Object.fromEntries(locales.filter((l) => author[l]).map((l) => [l, authorPath(l, author.slug)])), {
+        lastModified: author.updatedAt,
         changeFrequency: "weekly",
         priority: 0.4,
       }),

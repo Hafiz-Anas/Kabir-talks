@@ -52,11 +52,14 @@ export function newsArticleLd(article: {
   locale: Locale;
   section: string;
   keywords: string[];
-  author: { name: string; isOrganization: boolean };
+  /** Phase 7C: the credited author profile, with the URL of their author page. */
+  author: { name: string; url: string };
+  /** Phase 7C: opinion pieces are OpinionNewsArticle. */
+  opinion?: boolean;
   site: { name: string; url: string; logo: string };
 }): JsonLd {
   return {
-    "@type": "NewsArticle",
+    "@type": article.opinion ? "OpinionNewsArticle" : "NewsArticle",
     mainEntityOfPage: { "@type": "WebPage", "@id": article.url },
     url: article.url,
     // Google shows up to 110 characters.
@@ -68,15 +71,43 @@ export function newsArticleLd(article: {
     inLanguage: LANGUAGE[article.locale],
     articleSection: article.section,
     ...(article.keywords.length ? { keywords: article.keywords.join(", ") } : {}),
-    author: article.author.isOrganization
-      ? { "@type": "Organization", name: article.author.name, url: article.site.url }
-      : { "@type": "Person", name: article.author.name },
+    author: { "@type": "Person", "@id": `${article.author.url}#person`, name: article.author.name, url: article.author.url },
     publisher: {
       "@type": "NewsMediaOrganization",
       "@id": `${article.site.url}/#organization`,
       name: article.site.name,
       url: article.site.url,
       logo: { "@type": "ImageObject", url: article.site.logo, width: 512, height: 512 },
+    },
+  };
+}
+
+/** Phase 7C: an author page — a ProfilePage about one Person. */
+export function profilePageLd(person: {
+  url: string;
+  name: string;
+  jobTitle: string | null;
+  description: string | null;
+  image: string | null;
+  sameAs: string[];
+  locale: Locale;
+  site: { url: string };
+}): JsonLd {
+  return {
+    "@type": "ProfilePage",
+    url: person.url,
+    inLanguage: LANGUAGE[person.locale],
+    isPartOf: { "@id": `${person.site.url}/#website-${person.locale}` },
+    mainEntity: {
+      "@type": "Person",
+      "@id": `${person.url}#person`,
+      name: person.name,
+      url: person.url,
+      ...(person.jobTitle ? { jobTitle: person.jobTitle } : {}),
+      ...(person.description ? { description: person.description } : {}),
+      ...(person.image ? { image: person.image } : {}),
+      ...(person.sameAs.length ? { sameAs: person.sameAs } : {}),
+      worksFor: { "@id": `${person.site.url}/#organization` },
     },
   };
 }

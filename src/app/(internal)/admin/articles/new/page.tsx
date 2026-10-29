@@ -8,6 +8,7 @@ import { requireAdmin } from "@/lib/auth-guards";
 import { env } from "@/lib/env";
 import { features } from "@/lib/features";
 import { getEditorOptions } from "@/server/articles";
+import { listAuthorOptions } from "@/server/authors";
 import { imagePrefix } from "@/server/storage";
 
 import { EditorSkeleton } from "../editor-skeleton";
@@ -24,7 +25,7 @@ export default function NewArticlePage() {
 
 async function NewArticle() {
   await requireAdmin();
-  const options = await getEditorOptions();
+  const [options, authors] = await Promise.all([getEditorOptions(), listAuthorOptions()]);
 
   if (options.categories.length === 0) {
     return (
@@ -49,6 +50,7 @@ async function NewArticle() {
         bodyEn: null,
         bodyUr: null,
         categoryId: options.categories[0].id,
+        authorProfileId: (authors.find((author) => author.isDefault) ?? authors[0])?.id ?? "",
         slug: "",
         tags: [],
         coverImageUrl: null,
@@ -62,6 +64,7 @@ async function NewArticle() {
         aiReviewPending: false,
       }}
       categories={options.categories}
+      authors={authors}
       tagOptions={options.tags}
       uploadsEnabled={features.storageEnabled}
       imagePrefix={imagePrefix()}

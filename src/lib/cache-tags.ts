@@ -14,4 +14,6 @@ export const cacheTags = {
   pages: "pages",
   /** Phase 7C: live items for the breaking-news bar (/api/public/breaking). */
   breaking: "breaking",
+  /** Phase 7C: author profiles (bylines, author pages, opinion cards). */
+  authors: "authors",
 } as const;

@@ -30,6 +30,8 @@ export const RESERVED_CATEGORY_SLUGS = [
   "login", "signup", "account", "forgot-password", "reset-password",
   // Growth (Phase 7): static pages and feeds under /{locale}/
   "privacy", "terms", "contact", "newsletter", "rss.xml",
+  // Phase 7C: author pages (/{locale}/author/{slug})
+  "author",
 ] as const;
 
 export function isReservedCategorySlug(slug: string) {

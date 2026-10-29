@@ -12,6 +12,7 @@ import {
   MessageSquare,
   MessagesSquare,
   Settings,
+  Users,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -30,6 +31,7 @@ const GROUPS: { label?: string; items: NavItem[] }[] = [
       { label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
       { label: "Articles", href: "/admin/articles", icon: FileText },
       { label: "Categories", href: "/admin/categories", icon: FolderTree },
+      { label: "Authors", href: "/admin/authors", icon: Users },
       { label: "Comments", href: "/admin/comments", icon: MessageSquare, badge: "pendingComments", badgeLabel: "pending" },
       { label: "Breaking news", href: "/admin/breaking", icon: Zap },
     ],

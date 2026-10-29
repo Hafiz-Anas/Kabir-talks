@@ -4,7 +4,7 @@ import { eq, inArray } from "drizzle-orm";
 
 import type { ArticleDoc, BlockNode } from "@/lib/content/document";
 import { db, pgClient } from "./index";
-import { articles, articleTags, categories, tags, user } from "./schema";
+import { articles, articleTags, authors, categories, tags, user } from "./schema";
 
 /**
  * OPTIONAL demo content for testing the admin: `npm run seed:demo`.
@@ -334,6 +334,9 @@ async function main() {
   const admin = await db.query.user.findFirst({ where: eq(user.role, "admin") });
   if (!admin) throw new Error("No admin user found. Run `npm run seed:admin` first.");
 
+  const author = await db.query.authors.findFirst({ where: eq(authors.isDefault, true) });
+  if (!author) throw new Error("No main author found. Run the migrations and `npm run seed` first.");
+
   const categoryRows = await db.select().from(categories).where(inArray(categories.slug, ["current-affairs", "sports"]));
   const categoryId = Object.fromEntries(categoryRows.map((c) => [c.slug, c.id]));
   if (!categoryId["current-affairs"] || !categoryId.sports) throw new Error("Categories missing. Run `npm run seed` first.");
@@ -351,6 +354,7 @@ async function main() {
           slug: demo.slug,
           categoryId: categoryId[demo.category],
           authorId: admin.id,
+          authorProfileId: author.id,
           status: demo.status,
           isFeatured: demo.featured ?? false,
           titleEn: demo.en?.title ?? null,

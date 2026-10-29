@@ -4,7 +4,7 @@ import { and, desc, eq, gte, notInArray, sql } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
-import { articles, articleViews, categories } from "@/db/schema";
+import { articles, articleViews, authors, categories } from "@/db/schema";
 import type { Locale } from "@/i18n/config";
 import { aiDay } from "@/lib/ai/day";
 import type { ArticleCardData } from "@/lib/articles/public";
@@ -39,6 +39,7 @@ async function mostViewed(locale: Locale, sinceDay: string, limit: number, exclu
     .select({ ...cardColumns, views: views.views })
     .from(articles)
     .innerJoin(categories, eq(categories.id, articles.categoryId))
+    .innerJoin(authors, eq(authors.id, articles.authorProfileId))
     .innerJoin(views, eq(views.articleId, articles.id))
     .where(and(isPublished, availableIn(locale), excludeIds.length ? notInArray(articles.id, excludeIds) : undefined))
     .orderBy(desc(views.views), ...newestFirst)

@@ -4,13 +4,15 @@ import { and, asc, count, desc, eq, notInArray, type SQL, sql } from "drizzle-or
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
-import { aiAudio, articles, articleTags, categories, tags, user } from "@/db/schema";
+import { aiAudio, articles, articleTags, authors, categories, tags } from "@/db/schema";
 import type { Locale } from "@/i18n/config";
 import { type ArticleCardData, LISTING_PAGE_SIZE, type TagData } from "@/lib/articles/public";
 import { isLocaleComplete } from "@/lib/articles/rules";
+import { localizeAuthor } from "@/lib/authors";
 import { cacheTags } from "@/lib/cache-tags";
 import { type ArticleDoc, countWords, docToPlainText, readingMinutes } from "@/lib/content/document";
 import { features } from "@/lib/features";
+import { cleanSocialLinks } from "@/lib/social";
 
 import { articleSourceHash } from "../ai/source-hash";
 
@@ -61,10 +63,20 @@ export const cardColumns = {
   categorySlug: categories.slug,
   categoryNameEn: categories.nameEn,
   categoryNameUr: categories.nameUr,
+  // Phase 7C: the credited author (bylines on opinion cards).
+  authorSlug: authors.slug,
+  authorNameEn: authors.nameEn,
+  authorNameUr: authors.nameUr,
+  authorPhotoUrl: authors.photoUrl,
 };
 
+/** Joins every card query needs (category + credited author). */
 export function selectCards() {
-  return db.select(cardColumns).from(articles).innerJoin(categories, eq(categories.id, articles.categoryId));
+  return db
+    .select(cardColumns)
+    .from(articles)
+    .innerJoin(categories, eq(categories.id, articles.categoryId))
+    .innerJoin(authors, eq(authors.id, articles.authorProfileId));
 }
 
 type CardRow = Awaited<ReturnType<typeof selectCards>>[number];
@@ -86,6 +98,12 @@ function toCard(row: CardRow, locale: Locale): ArticleCardData | null {
     isFeatured: row.isFeatured,
     publishedAt: row.publishedAt.toISOString(),
     readingMinutes: readingMinutes(countWords(docToPlainText(body)), locale),
+    author: {
+      slug: row.authorSlug,
+      name: locale === "ur" && row.authorNameUr?.trim() ? row.authorNameUr.trim() : row.authorNameEn,
+      nameIsEnglish: locale === "ur" && !row.authorNameUr?.trim(),
+      photoUrl: row.authorPhotoUrl,
+    },
   };
 }
 
@@ -99,6 +117,8 @@ export type ListOptions = {
   locale: Locale;
   categorySlug?: string;
   tagSlug?: string;
+  /** Phase 7C: one author's articles (author page). */
+  authorId?: string;
   featuredOnly?: boolean;
   excludeIds?: string[];
   limit?: number;
@@ -111,6 +131,7 @@ function listWhere(options: ListOptions) {
     availableIn(options.locale),
     options.categorySlug ? eq(categories.slug, options.categorySlug) : undefined,
     options.tagSlug ? hasTag(options.tagSlug) : undefined,
+    options.authorId ? eq(articles.authorProfileId, options.authorId) : undefined,
     options.featuredOnly ? eq(articles.isFeatured, true) : undefined,
     options.excludeIds?.length ? notInArray(articles.id, options.excludeIds) : undefined,
   );
@@ -131,7 +152,7 @@ export async function listArticleCards(options: ListOptions): Promise<ArticleCar
   return toCards(rows, options.locale);
 }
 
-export async function countArticles(options: Pick<ListOptions, "locale" | "categorySlug" | "tagSlug">) {
+export async function countArticles(options: Pick<ListOptions, "locale" | "categorySlug" | "tagSlug" | "authorId">) {
   "use cache";
   cacheLife("hours");
   cacheTag(cacheTags.articles);
@@ -163,11 +184,16 @@ export async function getPublishedArticle(slug: string) {
       seoTitleUr: articles.seoTitleUr,
       seoDescriptionEn: articles.seoDescriptionEn,
       seoDescriptionUr: articles.seoDescriptionUr,
-      authorName: user.name,
+      authorId: authors.id,
+      authorTitleEn: authors.titleEn,
+      authorTitleUr: authors.titleUr,
+      authorBioEn: authors.bioEn,
+      authorBioUr: authors.bioUr,
+      authorSocialLinks: authors.socialLinks,
     })
     .from(articles)
     .innerJoin(categories, eq(categories.id, articles.categoryId))
-    .innerJoin(user, eq(user.id, articles.authorId))
+    .innerJoin(authors, eq(authors.id, articles.authorProfileId))
     .where(and(isPublished, eq(articles.slug, slug)))
     .limit(1);
   if (!row?.publishedAt) return null;
@@ -209,7 +235,27 @@ export async function getPublishedArticle(slug: string) {
     coverImageAlt: row.coverImageAlt,
     publishedAt: row.publishedAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-    authorName: row.authorName,
+    /** Phase 7C: the credited author, per language. */
+    author: Object.fromEntries(
+      (["en", "ur"] as const).map((l) => [
+        l,
+        localizeAuthor(
+          {
+            id: row.authorId,
+            slug: row.authorSlug,
+            nameEn: row.authorNameEn,
+            nameUr: row.authorNameUr,
+            titleEn: row.authorTitleEn,
+            titleUr: row.authorTitleUr,
+            bioEn: row.authorBioEn,
+            bioUr: row.authorBioUr,
+            photoUrl: row.authorPhotoUrl,
+            socialLinks: cleanSocialLinks(row.authorSocialLinks),
+          },
+          l,
+        ),
+      ]),
+    ) as Record<Locale, ReturnType<typeof localizeAuthor>>,
     tags: articleTagRows,
     /** Null for a locale the article isn't available in. */
     locales: { en: content("en"), ur: content("ur") },

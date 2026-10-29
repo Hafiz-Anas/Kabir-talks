@@ -36,6 +36,8 @@ export const articlePayloadSchema = z.object({
   bodyEn: z.unknown().nullable().default(null),
   bodyUr: z.unknown().nullable().default(null),
   categoryId: z.uuid("Choose a category"),
+  /** Phase 7C: the credited author profile. Omitted: keep the current one (new articles: the main author). */
+  authorProfileId: z.uuid("Choose an author").optional(),
   slug: z
     .string()
     .trim()

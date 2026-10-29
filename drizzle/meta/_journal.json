@@ -120,6 +120,13 @@
       "when": 1793254264568,
       "tag": "0016_breaking_news",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793255189412,
+      "tag": "0017_authors",
+      "breakpoints": true
     }
   ]
 }

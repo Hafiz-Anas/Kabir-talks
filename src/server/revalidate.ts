@@ -53,3 +53,13 @@ export function revalidateArticlePages(id: string, location: ArticleLocation) {
   updateTag(cacheTags.article(id));
   for (const locale of locales) revalidatePath(articlePath(locale, location.categorySlug, location.slug));
 }
+
+/**
+ * Phase 7C: an author's name, photo or bio shows on their page, every byline
+ * and author box, and opinion cards, so refresh the whole public site.
+ */
+export function revalidateAuthors() {
+  updateTag(cacheTags.authors);
+  updateTag(cacheTags.articles);
+  revalidatePath("/[locale]", "layout");
+}

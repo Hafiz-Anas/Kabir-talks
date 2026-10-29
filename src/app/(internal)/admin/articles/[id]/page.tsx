@@ -9,6 +9,7 @@ import { env } from "@/lib/env";
 import { features } from "@/lib/features";
 import { getReaderAiStatus } from "@/server/ai/status";
 import { getArticleForEdit, getEditorOptions } from "@/server/articles";
+import { listAuthorOptions } from "@/server/authors";
 import { articleSendStatus } from "@/server/newsletter/sends";
 import { imagePrefix } from "@/server/storage";
 
@@ -27,7 +28,7 @@ export default function EditArticlePage({ params }: PageProps<"/admin/articles/[
 async function EditArticle({ params }: { params: PageProps<"/admin/articles/[id]">["params"] }) {
   await requireAdmin();
   const { id } = await params;
-  const [article, options] = await Promise.all([getArticleForEdit(id), getEditorOptions()]);
+  const [article, options, authors] = await Promise.all([getArticleForEdit(id), getEditorOptions(), listAuthorOptions()]);
   if (!article) notFound();
   const [readerAi, newsletterStatus] = await Promise.all([
     features.aiEnabled ? getReaderAiStatus(article.id) : null,
@@ -49,6 +50,7 @@ async function EditArticle({ params }: { params: PageProps<"/admin/articles/[id]
         bodyEn: (article.bodyEn as ArticleDoc | null) ?? null,
         bodyUr: (article.bodyUr as ArticleDoc | null) ?? null,
         categoryId: article.categoryId,
+        authorProfileId: article.authorProfileId,
         slug: article.slug,
         tags: article.tags.map((tag) => ({ id: tag.id, nameEn: tag.nameEn, nameUr: tag.nameUr })),
         coverImageUrl: article.coverImageUrl,
@@ -62,6 +64,7 @@ async function EditArticle({ params }: { params: PageProps<"/admin/articles/[id]
         aiReviewPending: article.aiReviewPending,
       }}
       categories={options.categories}
+      authors={authors}
       tagOptions={options.tags}
       uploadsEnabled={features.storageEnabled}
       imagePrefix={imagePrefix()}

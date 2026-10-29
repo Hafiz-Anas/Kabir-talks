@@ -74,6 +74,8 @@ export type EditorInitial = {
   bodyEn: ArticleDoc | null;
   bodyUr: ArticleDoc | null;
   categoryId: string;
+  /** Phase 7C: credited author profile (defaults to the main author). */
+  authorProfileId: string;
   slug: string;
   tags: TagValue[];
   coverImageUrl: string | null;
@@ -100,6 +102,7 @@ type Form = Omit<EditorInitial, "id" | "status" | "publishedAt" | "bodyEn" | "bo
 type Props = {
   initial: EditorInitial;
   categories: { id: string; slug: string; nameEn: string; nameUr: string }[];
+  authors: { id: string; nameEn: string; nameUr: string | null; isDefault: boolean }[];
   tagOptions: { id: string; slug: string; nameEn: string; nameUr: string | null }[];
   uploadsEnabled: boolean;
   imagePrefix: string | null;
@@ -124,6 +127,7 @@ const selectClass =
 export function ArticleEditor({
   initial,
   categories,
+  authors,
   tagOptions,
   uploadsEnabled,
   imagePrefix,
@@ -229,6 +233,7 @@ export function ArticleEditor({
       bodyEn: sanitizeDoc(source.bodyEn, { imagePrefix }).doc,
       bodyUr: sanitizeDoc(source.bodyUr, { imagePrefix }).doc,
       categoryId: source.categoryId,
+      authorProfileId: source.authorProfileId,
       slug: source.slug,
       tags: source.tags.map((tag) => (tag.id ? { id: tag.id } : { name: tag.nameEn })),
       coverImageUrl: source.coverImageUrl,
@@ -692,6 +697,19 @@ export function ArticleEditor({
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.nameEn} — {category.nameUr}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Field>
+            <Field label="Author" error={errors.authorProfileId}>
+              {(fieldId) => (
+                <select id={fieldId} className={selectClass} value={form.authorProfileId} onChange={(e) => update("authorProfileId", e.target.value)} required>
+                  {authors.map((author) => (
+                    <option key={author.id} value={author.id}>
+                      {author.nameEn}
+                      {author.nameUr ? ` — ${author.nameUr}` : ""}
+                      {author.isDefault ? " (main)" : ""}
                     </option>
                   ))}
                 </select>
