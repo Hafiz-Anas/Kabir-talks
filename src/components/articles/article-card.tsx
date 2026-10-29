@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { AuthorPhoto } from "@/components/authors/author-photo";
 import { BookmarkButton } from "@/components/bookmarks/bookmark-button";
+import { OpinionLabel } from "@/components/opinion/opinion-label";
 import { type CardLabels, fill, type Locale } from "@/i18n";
 import type { ArticleCardData } from "@/lib/articles/public";
 import { formatPublicDate } from "@/lib/format";
@@ -88,7 +90,18 @@ export function ArticleCard({
       </div>
 
       <div className="min-w-0 space-y-2">
-        <p className="text-xs font-medium tracking-[0.12em] text-gold uppercase">{article.categoryName}</p>
+        {article.isOpinion ? (
+          // Phase 7C: opinion pieces lead with the label and the author's photo.
+          <div className="flex items-center gap-2.5">
+            <AuthorPhoto name={article.author.name} photoUrl={article.author.photoUrl} size={compact ? 28 : 40} />
+            <div className="min-w-0 space-y-1">
+              <OpinionLabel label={labels.opinion} />
+              <p className="text-sm break-words text-ivory">{article.author.nameIsEnglish ? <bdi lang="en">{article.author.name}</bdi> : article.author.name}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs font-medium tracking-[0.12em] text-gold uppercase">{article.categoryName}</p>
+        )}
         <Heading
           className={cn(
             "text-ivory transition-colors group-hover:text-gold-soft",

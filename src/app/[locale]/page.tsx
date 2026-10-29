@@ -7,10 +7,11 @@ import { LoadMore } from "@/components/articles/load-more";
 import { TrendingList } from "@/components/articles/trending-list";
 import { newsletterLabels } from "@/components/newsletter/labels";
 import { SignupBox } from "@/components/newsletter/signup-box";
+import { OpinionStrip } from "@/components/opinion/opinion-strip";
 import { JsonLdScript } from "@/components/json-ld";
 import { SectionHeading } from "@/components/section-heading";
 import { cardLabels, type Dictionary, getDictionary, isLocale, type Locale } from "@/i18n";
-import { type ArticleCardData, FEED_PAGE_SIZE } from "@/lib/articles/public";
+import { type ArticleCardData, FEED_PAGE_SIZE, OPINION_CATEGORY_SLUG } from "@/lib/articles/public";
 import { features } from "@/lib/features";
 import { pageMetadata, siteIdentity, siteUrl } from "@/lib/seo";
 import { organizationLd, websiteLd } from "@/lib/structured-data";
@@ -37,6 +38,8 @@ export async function generateMetadata({ params }: PageProps<"/[locale]">): Prom
 /** How many stories sit beside the hero, and per category section. */
 const TOP_STORIES = 4;
 const SECTION_SIZE = 4;
+/** Phase 7C: opinion pieces in the homepage strip. */
+const OPINION_SIZE = 4;
 
 /**
  * Homepage. Fully prerendered from cached public reads; admin publishes
@@ -68,14 +71,16 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
   const leadIds = lead.map((card) => card.id);
 
   // One extra card tells us whether "Load more" has anything to load.
-  const [feedPage, sections] = await Promise.all([
+  const [feedPage, sections, opinion] = await Promise.all([
     listArticleCards({ locale, excludeIds: leadIds, limit: FEED_PAGE_SIZE + 1 }),
     Promise.all(
-      categories.map(async (category) => ({
+      // Opinion has its own strip (author photos) instead of a plain section.
+      categories.filter((category) => category.slug !== OPINION_CATEGORY_SLUG).map(async (category) => ({
         category,
         articles: await listArticleCards({ locale, categorySlug: category.slug, limit: SECTION_SIZE }),
       })),
     ).then((all) => all.filter((section) => section.articles.length > 0)),
+    listArticleCards({ locale, categorySlug: OPINION_CATEGORY_SLUG, limit: OPINION_SIZE }),
   ]);
   const feed = feedPage.slice(0, FEED_PAGE_SIZE);
 
@@ -124,6 +129,8 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
           )}
         </section>
       )}
+
+      <OpinionStrip locale={locale} items={opinion} labels={{ title: dict.opinion.title, label: dict.opinion.label, viewAll: dict.common.viewAll }} />
 
       <AdSlot placement="home-feed" locale={locale} />
 

@@ -419,6 +419,10 @@ export const en = {
       generic: "Something went wrong. Please try again.",
     },
   },
+  opinion: {
+    label: "Opinion",
+    title: "Opinion",
+  },
   author: {
     label: "Author",
     aboutAuthor: "About the author",

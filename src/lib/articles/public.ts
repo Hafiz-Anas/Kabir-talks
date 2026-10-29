@@ -6,6 +6,9 @@ import type { Locale } from "@/i18n/config";
  * Components such as the homepage "Load more" button.
  */
 
+/** Phase 7C: articles in this category are opinion pieces (label, disclaimer, homepage strip, OpinionNewsArticle). */
+export const OPINION_CATEGORY_SLUG = "opinion";
+
 export type ArticleCardData = {
   id: string;
   slug: string;
@@ -19,6 +22,8 @@ export type ArticleCardData = {
   isFeatured: boolean;
   publishedAt: string;
   readingMinutes: number;
+  /** Phase 7C: in the Opinion category. */
+  isOpinion: boolean;
   /** Phase 7C: the credited author, in the card's language. */
   author: { slug: string; name: string; nameIsEnglish: boolean; photoUrl: string | null };
 };

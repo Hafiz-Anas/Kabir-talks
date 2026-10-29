@@ -30,6 +30,8 @@ async function main() {
     .values([
       { slug: "current-affairs", nameEn: "Current Affairs", nameUr: "حالات حاضرہ", sortOrder: 1 },
       { slug: "sports", nameEn: "Sports", nameUr: "کھیل", sortOrder: 2 },
+      // Phase 7C: opinion pieces get an "Opinion" label, the disclaimer and the homepage strip (OPINION_CATEGORY_SLUG).
+      { slug: "opinion", nameEn: "Opinion", nameUr: "رائے", sortOrder: 3 },
     ])
     .onConflictDoUpdate({
       target: categories.slug,

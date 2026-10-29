@@ -15,7 +15,7 @@ export function fill(template: string, values: Record<string, string | number>):
 
 /** What an article card needs: reading time and the bookmark button's strings. */
 export function cardLabels(dict: Dictionary) {
-  return { minRead: dict.common.minRead, bookmarks: dict.bookmarks };
+  return { minRead: dict.common.minRead, bookmarks: dict.bookmarks, opinion: dict.opinion.label };
 }
 export type CardLabels = ReturnType<typeof cardLabels>;
 

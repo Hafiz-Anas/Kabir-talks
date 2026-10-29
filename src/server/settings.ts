@@ -30,9 +30,25 @@ const contactSchema = z.object({
 export type ContactSettings = z.infer<typeof contactSchema>;
 const CONTACT_DEFAULTS: ContactSettings = { email: null };
 
-const SCHEMAS = { ads: [adsSchema, ADS_DEFAULTS], contact: [contactSchema, CONTACT_DEFAULTS] } as const;
+/** Phase 7C: the line at the end of opinion pieces. Empty falls back to the default. */
+const OPINION_DEFAULTS = {
+  disclaimerEn: "Views expressed are the author’s own.",
+  disclaimerUr: "اس تحریر میں بیان کردہ آراء مصنف کی ذاتی ہیں۔",
+};
+const opinionSchema = z.object({
+  disclaimerEn: z.string().trim().max(300).catch(OPINION_DEFAULTS.disclaimerEn),
+  disclaimerUr: z.string().trim().max(300).catch(OPINION_DEFAULTS.disclaimerUr),
+});
+export type OpinionSettings = z.infer<typeof opinionSchema>;
+
+const SCHEMAS = {
+  ads: [adsSchema, ADS_DEFAULTS],
+  contact: [contactSchema, CONTACT_DEFAULTS],
+  opinion: [opinionSchema, OPINION_DEFAULTS],
+} as const;
 type Key = keyof typeof SCHEMAS;
-type Value<K extends Key> = K extends "ads" ? AdsSettings : ContactSettings;
+type Values = { ads: AdsSettings; contact: ContactSettings; opinion: OpinionSettings };
+type Value<K extends Key> = Values[K];
 
 /** Uncached read (admin pages, actions). */
 export async function readSetting<K extends Key>(key: K): Promise<Value<K>> {
@@ -104,4 +120,13 @@ export async function getContactEmail(): Promise<string | null> {
   return (await readSetting("contact")).email;
 }
 
-export { ADS_DEFAULTS, CONTACT_DEFAULTS };
+/** Phase 7C: the opinion disclaimer in one language (the default when empty). Cached. */
+export async function getOpinionDisclaimer(locale: "en" | "ur"): Promise<string> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(cacheTags.settings);
+  const settings = await readSetting("opinion");
+  return (locale === "en" ? settings.disclaimerEn : settings.disclaimerUr) || (locale === "en" ? OPINION_DEFAULTS.disclaimerEn : OPINION_DEFAULTS.disclaimerUr);
+}
+
+export { ADS_DEFAULTS, CONTACT_DEFAULTS, OPINION_DEFAULTS };

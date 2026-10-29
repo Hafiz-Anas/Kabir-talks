@@ -419,6 +419,10 @@ export const ur: Dictionary = {
       generic: "کچھ غلط ہو گیا۔ براہ کرم دوبارہ کوشش کریں۔",
     },
   },
+  opinion: {
+    label: "رائے",
+    title: "رائے",
+  },
   author: {
     label: "مصنف",
     aboutAuthor: "مصنف کے بارے میں",

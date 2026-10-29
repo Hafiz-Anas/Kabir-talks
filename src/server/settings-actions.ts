@@ -27,3 +27,19 @@ export async function saveContactSettings(input: z.input<typeof contactSchema>):
   for (const locale of locales) revalidatePath(`/${locale}/contact`);
   return { ok: true, message: email ? `Saved. The Contact page shows ${email}.` : "Saved. No public email is shown." };
 }
+
+const opinionSchema = z.object({
+  disclaimerEn: z.string().trim().max(300, "At most 300 characters"),
+  disclaimerUr: z.string().trim().max(300, "At most 300 characters"),
+});
+
+/** Phase 7C: the disclaimer under opinion pieces. Empty fields fall back to the default wording. */
+export async function saveOpinionSettings(input: z.input<typeof opinionSchema>): Promise<SettingsResult> {
+  await requireAdmin();
+  const parsed = opinionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  await writeSetting("opinion", parsed.data);
+  updateTag(cacheTags.settings);
+  revalidatePath("/[locale]", "layout");
+  return { ok: true, message: "Saved. Opinion pages show the new wording." };
+}

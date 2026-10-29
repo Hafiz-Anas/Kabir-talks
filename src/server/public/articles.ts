@@ -6,7 +6,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
 import { aiAudio, articles, articleTags, authors, categories, tags } from "@/db/schema";
 import type { Locale } from "@/i18n/config";
-import { type ArticleCardData, LISTING_PAGE_SIZE, type TagData } from "@/lib/articles/public";
+import { type ArticleCardData, LISTING_PAGE_SIZE, OPINION_CATEGORY_SLUG, type TagData } from "@/lib/articles/public";
 import { isLocaleComplete } from "@/lib/articles/rules";
 import { localizeAuthor } from "@/lib/authors";
 import { cacheTags } from "@/lib/cache-tags";
@@ -98,6 +98,7 @@ function toCard(row: CardRow, locale: Locale): ArticleCardData | null {
     isFeatured: row.isFeatured,
     publishedAt: row.publishedAt.toISOString(),
     readingMinutes: readingMinutes(countWords(docToPlainText(body)), locale),
+    isOpinion: row.categorySlug === OPINION_CATEGORY_SLUG,
     author: {
       slug: row.authorSlug,
       name: locale === "ur" && row.authorNameUr?.trim() ? row.authorNameUr.trim() : row.authorNameEn,

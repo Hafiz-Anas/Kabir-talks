@@ -6,6 +6,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { AdSlot } from "@/components/ad-slot";
 import { ArticleCard } from "@/components/articles/article-card";
 import { AuthorBox } from "@/components/authors/author-box";
+import { AuthorPhoto } from "@/components/authors/author-photo";
 import { ReaderTools } from "@/components/articles/reader-tools";
 import { ReadingProgress } from "@/components/articles/reading-progress";
 import { ShareBar } from "@/components/articles/share-bar";
@@ -18,6 +19,7 @@ import { ArticleBody } from "@/components/content/article-body";
 import { JsonLdScript } from "@/components/json-ld";
 import { newsletterLabels } from "@/components/newsletter/labels";
 import { SignupBox } from "@/components/newsletter/signup-box";
+import { OpinionLabel } from "@/components/opinion/opinion-label";
 import { SetLocaleAlternates } from "@/components/layout/locale-alternates";
 import { cardLabels, fill, getDictionary, isLocale, type Locale, locales } from "@/i18n";
 import { significantUpdate, tagName } from "@/lib/articles/public";
@@ -30,6 +32,7 @@ import { breadcrumbLd, newsArticleLd } from "@/lib/structured-data";
 import { articlePath, categoryPath } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { getPublishedArticle, listArticleStaticParams, listRelatedArticles } from "@/server/public/articles";
+import { getOpinionDisclaimer } from "@/server/settings";
 import { listTrending } from "@/server/public/trending";
 
 /**
@@ -105,7 +108,12 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
   const dict = getDictionary(locale);
   const path = articlePath(locale, article.categorySlug, article.slug);
   const section = locale === "en" ? article.categoryNameEn : article.categoryNameUr;
-  const [related, trending] = await Promise.all([listRelatedArticles(article.id, locale), listTrending(locale, { excludeId: article.id })]);
+  const opinion = content.isOpinion;
+  const [related, trending, disclaimer] = await Promise.all([
+    listRelatedArticles(article.id, locale),
+    listTrending(locale, { excludeId: article.id }),
+    opinion ? getOpinionDisclaimer(locale) : null,
+  ]);
   const updated = significantUpdate(article.publishedAt, article.updatedAt);
   const other = locales.find((l) => l !== locale)!;
   const author = article.author[locale];
@@ -129,6 +137,7 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
             section,
             keywords: article.tags.map((tag) => tagName(tag, locale)),
             author: { name: author.name, url: siteUrl(authorPath(locale, author.slug)) },
+            opinion,
             site: siteIdentity(locale),
           }),
           breadcrumbLd([
@@ -156,15 +165,23 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
                   { href: categoryPath(locale, article.categorySlug), label: section },
                 ]}
               />
-              <p className="text-xs font-medium tracking-[0.14em] text-gold uppercase">
-                <Link href={categoryPath(locale, article.categorySlug)} className="hover:text-gold-soft">
-                  {section}
+              {opinion ? (
+                <Link href={categoryPath(locale, article.categorySlug)} className="inline-block hover:opacity-80">
+                  <OpinionLabel label={dict.opinion.label} className="px-2 py-1 text-xs" />
                 </Link>
-              </p>
+              ) : (
+                <p className="text-xs font-medium tracking-[0.14em] text-gold uppercase">
+                  <Link href={categoryPath(locale, article.categorySlug)} className="hover:text-gold-soft">
+                    {section}
+                  </Link>
+                </p>
+              )}
               <h1 className="text-4xl text-ivory sm:text-5xl lg:text-[3.25rem]">{content.title}</h1>
               {content.excerpt && <p className="text-xl text-grey sm:text-2xl/relaxed">{content.excerpt}</p>}
 
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-border py-4 text-sm text-grey">
+                {/* Opinion pieces put the author's face up front. */}
+                {opinion && <AuthorPhoto name={author.name} photoUrl={author.photoUrl} size={56} priority className="me-1" />}
                 <span data-byline>
                   {dict.article.by}{" "}
                   <Link href={authorPath(locale, author.slug)} rel="author" className="text-ivory underline-offset-4 hover:text-gold-soft hover:underline">
@@ -239,6 +256,12 @@ export default async function ArticlePage({ params }: PageProps<"/[locale]/[cate
                     ))}
                   </ul>
                 </section>
+              )}
+
+              {disclaimer && (
+                <p data-opinion-disclaimer className="border-s-2 border-gold ps-4 text-sm text-grey italic">
+                  {disclaimer}
+                </p>
               )}
 
               <AuthorBox author={author} locale={locale} labels={dict.author} socialLabels={dict.social} />
