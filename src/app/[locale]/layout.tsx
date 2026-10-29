@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AdsScript } from "@/components/ad-slot";
+import { BreakingBar } from "@/components/breaking/breaking-bar";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { ThemeScript } from "@/components/theme/theme-script";
@@ -51,6 +52,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
           {dict.nav.skipToContent}
         </a>
         <Header locale={locale} dict={dict} />
+        <BreakingBar locale={locale} labels={dict.breaking} />
         <main id="main" className="flex-1">
           {children}
         </main>

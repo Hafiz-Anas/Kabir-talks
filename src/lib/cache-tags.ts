@@ -12,4 +12,6 @@ export const cacheTags = {
   settings: "settings",
   /** Privacy Policy and Terms of Use (site_pages). */
   pages: "pages",
+  /** Phase 7C: live items for the breaking-news bar (/api/public/breaking). */
+  breaking: "breaking",
 } as const;

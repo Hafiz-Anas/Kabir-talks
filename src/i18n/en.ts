@@ -419,6 +419,14 @@ export const en = {
       generic: "Something went wrong. Please try again.",
     },
   },
+  breaking: {
+    label: "Breaking",
+    region: "Breaking news",
+    dismiss: "Dismiss this news",
+    previous: "Previous news item",
+    next: "Next news item",
+    position: "{index} of {total}",
+  },
   theme: {
     label: "Theme",
     dark: "Dark",

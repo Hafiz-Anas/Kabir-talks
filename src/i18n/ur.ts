@@ -419,6 +419,14 @@ export const ur: Dictionary = {
       generic: "کچھ غلط ہو گیا۔ براہ کرم دوبارہ کوشش کریں۔",
     },
   },
+  breaking: {
+    label: "تازہ ترین",
+    region: "تازہ ترین خبریں",
+    dismiss: "یہ خبر ہٹائیں",
+    previous: "پچھلی خبر",
+    next: "اگلی خبر",
+    position: "{total} میں سے {index}",
+  },
   theme: {
     label: "تھیم",
     dark: "تاریک",

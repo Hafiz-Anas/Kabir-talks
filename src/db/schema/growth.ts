@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
   index,
   integer,
@@ -223,4 +225,33 @@ export const contactMessages = pgTable(
     createdAt: createdAt(),
   },
   (table) => [index("contact_messages_created_at_idx").on(table.createdAt)],
+);
+
+/**
+ * Phase 7C: items for the "Breaking" bar under the header. Either language's
+ * text may be empty (the bar is then hidden in that language). The link is an
+ * article (shown only while it is published) or an https URL, never both.
+ * Several items can be live; the public endpoint shows the newest first and
+ * drops expired ones (src/server/breaking.ts).
+ */
+export const breakingNews = pgTable(
+  "breaking_news",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    textEn: text("text_en"),
+    textUr: text("text_ur"),
+    articleId: uuid("article_id").references(() => articles.id, { onDelete: "set null" }),
+    linkUrl: text("link_url"),
+    isActive: boolean("is_active").default(true).notNull(),
+    /** Null = stays until switched off. */
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    index("breaking_news_active_created_idx").on(table.isActive, table.createdAt.desc()),
+    check("breaking_news_has_text", sql`coalesce(btrim(${table.textEn}), '') <> '' OR coalesce(btrim(${table.textUr}), '') <> ''`),
+    check("breaking_news_one_link", sql`${table.articleId} IS NULL OR ${table.linkUrl} IS NULL`),
+  ],
 );

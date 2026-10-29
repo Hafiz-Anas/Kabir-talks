@@ -27,6 +27,8 @@
   --kt-success: #6ee7b7;
   --kt-warning: #fbbf24;
   --kt-danger: #fca5a5;
+  /* Breaking-news label: white text on it is 6.5:1 in both themes. */
+  --kt-breaking: #b91c1c;
   /* Dialog and sheet backdrops: a dark scrim in both themes. */
   --kt-overlay: rgb(0 0 0 / 0.5);
 
@@ -96,6 +98,7 @@
   --color-success: var(--kt-success);
   --color-warning: var(--kt-warning);
   --color-danger: var(--kt-danger);
+  --color-breaking: var(--kt-breaking);
 
   /* shadcn/ui */
   --color-background: var(--background);
